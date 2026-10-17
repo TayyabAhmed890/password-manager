@@ -1,8 +1,5 @@
-const startServer = require("../src/index");
+const app = require("../src/index");
 const connectDB = require("../src/db/connectDB");
-
-// Express application instance
-const app = startServer.app;
 
 // Vercel serverless function entry handler
 module.exports = async (req, res) => {

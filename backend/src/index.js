@@ -58,6 +58,20 @@ app.use(
 );
 
 
+// Ensure database connection is initialized before processing any request
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Ignore favicon requests without cluttering 404 logs
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+
+
 // ============================================================
 // ROUTES
 // ============================================================
@@ -142,32 +156,7 @@ app.use((err, req, res, next) => {
 });
 
 
-// ============================================================
-// START SERVER
-// ============================================================
+// Attach .app for backward compatibility with tests
+app.app = app;
 
-const startServer = async () => {
-  try {
-    // Connect to MongoDB before accepting requests.
-    await connectDB();
-
-    app.listen(PORT, () => {
-      console.log(
-        `Server running on port ${PORT}`
-      );
-    });
-
-  } catch (error) {
-    console.error(
-      "Server failed to start:",
-      error.message
-    );
-
-    // Stop the process if the database connection fails.
-    process.exit(1);
-  }
-};
-
-startServer.app = app;
-
-module.exports = startServer;
+module.exports = app;
