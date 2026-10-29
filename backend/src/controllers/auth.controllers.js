@@ -1,7 +1,13 @@
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
+const mongoose = require("mongoose");
 const User = require("../models/user.model");
+const Password = require("../models/store.model");
+const VaultKey = require("../models/vaultKey.model");
 
 const generateToken = require("../utils/token");
+const { setAuthCookie, clearAuthCookie } = require("../utils/authCookie");
+const { wrapDek } = require("../utils/encryption");
 
 const {
   generateRecoveryCode,
@@ -130,65 +136,54 @@ const register = async (req, res) => {
       12
     );
 
-    // ----------------------------------------------------------
-    // Create the user.
-    // ----------------------------------------------------------
-    const user = await User.create({
-      email: cleanEmail,
-      passwordHash,
-      recoveryCodeHash,
-    });
+    const dek = crypto.randomBytes(32);
+    const wrappedDek = wrapDek(dek);
+    dek.fill(0);
 
-    // ----------------------------------------------------------
-    // Generate authentication token.
-    //
-    // tokenVersion is included so that we can invalidate old
-    // JWTs after a password reset.
-    // ----------------------------------------------------------
-    // const token = generateToken(
-    //   user._id.toString(),
-    //   user.tokenVersion,
-    //   user.role
-    // );
+    // Keep account and vault-key creation atomic so an account cannot
+    // be registered without its corresponding encryption key.
+    const session = await mongoose.startSession();
+    let user;
 
-    // ----------------------------------------------------------
-    // Store JWT inside an httpOnly cookie.
-    //
-    // httpOnly:
-    //   JavaScript cannot directly access the cookie.
-    //
-    // secure:
-    //   HTTPS required in production.
-    //
-    // sameSite:
-    //   lax locally, none for cross-site production setup.
-    // ----------------------------------------------------------
-    // res.cookie("token", token, {
-    //   httpOnly: true,
+    try {
+      await session.withTransaction(async () => {
+        const [createdUser] = await User.create(
+          [{
+            email: cleanEmail,
+            passwordHash,
+            recoveryCodeHash,
+          }],
+          { session }
+        );
 
-    //   secure:
-    //     process.env.NODE_ENV === "production",
+        await VaultKey.create(
+          [{
+            userId: createdUser._id,
+            wrappedDek: wrappedDek.encrypted,
+            iv: wrappedDek.iv,
+            authTag: wrappedDek.authTag,
+            keyVersion: 1,
+          }],
+          { session }
+        );
 
-    //   sameSite:
-    //     process.env.NODE_ENV === "production"
-    //       ? "none"
-    //       : "lax",
+        user = createdUser;
+      });
+    } finally {
+      await session.endSession();
+    }
 
-    //   maxAge: 3 * 24 * 60 * 60 * 1000,
-
-    //   // Explicitly set the same path used by clearCookie().
-    //   path: "/",
-    // });
+    if (!user) {
+      throw new Error("User registration transaction did not complete.");
+    }
 
     // ----------------------------------------------------------
     // Return user information + recovery code.
     //
-    // The recovery code should only be shown once.
-    // The frontend should tell the user to save it safely.
-    //
-    // We DO NOT return the JWT because it is already stored
-    // inside the httpOnly cookie.
+    // The recovery code is shown once. Registration does not log the
+    // user in; they must submit their credentials through the login flow.
     // ----------------------------------------------------------
+    res.set("Cache-Control", "no-store");
     return res.status(201).json({
       success: true,
       message: "Account created successfully.",
@@ -317,22 +312,7 @@ const login = async (req, res) => {
     // ----------------------------------------------------------
     // Store JWT inside httpOnly cookie.
     // ----------------------------------------------------------
-    res.cookie("token", token, {
-      httpOnly: true,
-
-      secure:
-        process.env.NODE_ENV === "production",
-
-      sameSite:
-        process.env.NODE_ENV === "production"
-          ? "none"
-          : "lax",
-
-      maxAge: 3 * 24 * 60 * 60 * 1000,
-
-      // Keep this consistent with logout.
-      path: "/",
-    });
+    setAuthCookie(res, token);
 
     return res.status(200).json({
       success: true,
@@ -365,13 +345,7 @@ const logout = async (req, res) => {
       $inc: { tokenVersion: 1 },
     });
 
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite:
-        process.env.NODE_ENV === "production" ? "none" : "lax",
-      path: "/",
-    });
+    clearAuthCookie(res);
 
     return res.status(200).json({
       success: true,
@@ -575,20 +549,9 @@ const forgotPassword = async (req, res) => {
     //
     // User must login again with the new password.
     // ----------------------------------------------------------
-    res.clearCookie("token", {
-      httpOnly: true,
+    clearAuthCookie(res);
 
-      secure:
-        process.env.NODE_ENV === "production",
-
-      sameSite:
-        process.env.NODE_ENV === "production"
-          ? "none"
-          : "lax",
-
-      path: "/",
-    });
-
+    res.set("Cache-Control", "no-store");
     return res.status(200).json({
       success: true,
       message:
@@ -617,12 +580,25 @@ const forgotPassword = async (req, res) => {
 
 const getCurrentUser = async (req, res) => {
   try {
+    const user = await User.findById(req.user.id)
+      .select("email role recoveryCodeHash")
+      .lean();
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required.",
+      });
+    }
+
+    res.set("Cache-Control", "no-store");
     return res.status(200).json({
       success: true,
       user: {
         id: req.user.id,
-        email: req.user.email,
-        role: req.user.role,
+        email: user.email,
+        role: user.role,
+        hasRecoveryCode: Boolean(user.recoveryCodeHash),
       },
     });
   } catch (error) {
@@ -632,6 +608,206 @@ const getCurrentUser = async (req, res) => {
       success: false,
       message: "Unable to retrieve session.",
     });
+  }
+};
+
+const validateNewPassword = (password, res) => {
+  if (typeof password !== "string" || password.length < 8) {
+    res.status(400).json({
+      success: false,
+      message: "New password must be at least 8 characters long.",
+    });
+    return false;
+  }
+
+  if (Buffer.byteLength(password, "utf8") > 72) {
+    res.status(400).json({
+      success: false,
+      message: "New password cannot exceed 72 bytes.",
+    });
+    return false;
+  }
+
+  return true;
+};
+
+const rotateRecoveryCode = async (req, res) => {
+  try {
+    const { currentPassword } = req.body || {};
+
+    if (typeof currentPassword !== "string" || !currentPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password is required.",
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user || !(await bcrypt.compare(currentPassword, user.passwordHash))) {
+      return res.status(401).json({
+        success: false,
+        message: "Current password is incorrect.",
+      });
+    }
+
+    const { rawCode, formattedCode } = generateRecoveryCode();
+    const recoveryCodeHash = await bcrypt.hash(rawCode, 12);
+    const updatedUser = await User.findOneAndUpdate(
+      {
+        _id: user._id,
+        passwordHash: user.passwordHash,
+        recoveryCodeHash: user.recoveryCodeHash,
+      },
+      { $set: { recoveryCodeHash } },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(409).json({
+        success: false,
+        message: "Account changed during this request. Please try again.",
+      });
+    }
+
+    res.set("Cache-Control", "no-store");
+    return res.status(200).json({
+      success: true,
+      message: "Save this recovery code now. It will only be shown once.",
+      recoveryCode: formattedCode,
+    });
+  } catch (error) {
+    console.error("Recovery-code rotation error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Unable to generate a recovery code right now.",
+    });
+  }
+};
+
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+
+    if (typeof currentPassword !== "string" || !currentPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password is required.",
+      });
+    }
+
+    if (!validateNewPassword(newPassword, res)) {
+      return;
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user || !(await bcrypt.compare(currentPassword, user.passwordHash))) {
+      return res.status(401).json({
+        success: false,
+        message: "Current password is incorrect.",
+      });
+    }
+
+    if (await bcrypt.compare(newPassword, user.passwordHash)) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be different from the current password.",
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    const { rawCode, formattedCode } = generateRecoveryCode();
+    const recoveryCodeHash = await bcrypt.hash(rawCode, 12);
+    const updatedUser = await User.findOneAndUpdate(
+      {
+        _id: user._id,
+        passwordHash: user.passwordHash,
+        recoveryCodeHash: user.recoveryCodeHash,
+      },
+      {
+        $set: { passwordHash, recoveryCodeHash },
+        $inc: { tokenVersion: 1 },
+      },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(409).json({
+        success: false,
+        message: "Account changed during this request. Please try again.",
+      });
+    }
+
+    clearAuthCookie(res);
+
+    res.set("Cache-Control", "no-store");
+    return res.status(200).json({
+      success: true,
+      message: "Password changed. Save your new recovery code and log in again.",
+      newRecoveryCode: formattedCode,
+    });
+  } catch (error) {
+    console.error("Password change error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Unable to change your password right now.",
+    });
+  }
+};
+
+const deleteOwnAccount = async (req, res) => {
+  const { currentPassword } = req.body || {};
+
+  if (typeof currentPassword !== "string" || !currentPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Current password is required.",
+    });
+  }
+
+  let session;
+
+  try {
+    session = await mongoose.startSession();
+    await session.withTransaction(async () => {
+      const user = await User.findOne({
+        _id: req.user.id,
+        role: "user",
+      }).session(session);
+
+      if (!user || !(await bcrypt.compare(currentPassword, user.passwordHash))) {
+        const error = new Error("INVALID_CURRENT_PASSWORD");
+        throw error;
+      }
+
+      await Password.deleteMany({ userId: user._id }).session(session);
+      await VaultKey.deleteOne({ userId: user._id }).session(session);
+      await User.deleteOne({ _id: user._id }).session(session);
+    });
+
+    clearAuthCookie(res);
+    return res.status(200).json({
+      success: true,
+      message: "Your account and vault data have been permanently deleted.",
+    });
+  } catch (error) {
+    if (error.message === "INVALID_CURRENT_PASSWORD") {
+      return res.status(401).json({
+        success: false,
+        message: "Current password is incorrect or account cannot be deleted.",
+      });
+    }
+
+    console.error("Account deletion error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Unable to delete your account right now.",
+    });
+  } finally {
+    if (session) {
+      await session.endSession();
+    }
   }
 };
 
@@ -646,4 +822,7 @@ module.exports = {
   logout,
   forgotPassword,
   getCurrentUser,
+  rotateRecoveryCode,
+  changePassword,
+  deleteOwnAccount,
 };

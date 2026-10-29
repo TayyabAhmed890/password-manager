@@ -2,6 +2,7 @@
 const mongoose = require("mongoose");
 const User = require("../models/user.model");
 const Password = require("../models/store.model");
+const VaultKey = require("../models/vaultKey.model");
 
 // GET /api/admin/users
 // Return a paginated list of users with each user's vault count.
@@ -116,8 +117,7 @@ const deleteUser = async (req, res) => {
     });
   }
 
-  // Use a transaction if supported (e.g. MongoDB Atlas replica set).
-  // Fall back to sequential deletion if running on a standalone local MongoDB.
+  // Keep the user's vault records, wrapped key, and account deletion atomic.
   try {
     const session = await mongoose.startSession();
 
@@ -139,6 +139,10 @@ const deleteUser = async (req, res) => {
           userId: user._id,
         }).session(session);
 
+        await VaultKey.deleteOne({
+          userId: user._id,
+        }).session(session);
+
         // Then delete the user account itself.
         await User.deleteOne({
           _id: user._id,
@@ -157,29 +161,6 @@ const deleteUser = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "User not found or cannot be deleted.",
-      });
-    }
-
-    // Fallback for standalone MongoDB deployments where transactions are not supported
-    if (
-      error.message?.includes("Transaction numbers are only allowed") ||
-      error.message?.includes("replica set")
-    ) {
-      const user = await User.findOne({ _id: id, role: "user" });
-
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: "User not found or cannot be deleted.",
-        });
-      }
-
-      await Password.deleteMany({ userId: user._id });
-      await User.deleteOne({ _id: user._id });
-
-      return res.status(200).json({
-        success: true,
-        message: "User and their saved password records were deleted.",
       });
     }
 

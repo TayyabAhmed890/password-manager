@@ -2,6 +2,7 @@ const assert = require("assert");
 const mongoose = require("mongoose");
 const User = require("../src/models/user.model");
 const Password = require("../src/models/store.model");
+const VaultKey = require("../src/models/vaultKey.model");
 
 async function runTests() {
   console.log("Starting Phase 1C Model Schema Casing Tests...\n");
@@ -31,6 +32,19 @@ async function runTests() {
     "mongoose.model('user') must resolve to the registered User model"
   );
   console.log("✔ Test 3 Passed: Mongoose successfully resolves reference to the User model without MissingSchemaError.");
+  passedCount++;
+
+  const vaultKeyUserId = VaultKey.schema.path("userId");
+  assert(vaultKeyUserId, "VaultKey userId path must exist");
+  assert.strictEqual(vaultKeyUserId.options.ref, "user");
+  assert.strictEqual(vaultKeyUserId.options.unique, true);
+  assert(VaultKey.schema.path("wrappedDek"));
+  assert(VaultKey.schema.path("iv"));
+  assert(VaultKey.schema.path("authTag"));
+  assert(VaultKey.schema.path("keyVersion"));
+  assert.strictEqual(VaultKey.schema.path("dek"), undefined);
+  assert.strictEqual(Password.schema.path("encryptionVersion").options.default, 1);
+  console.log("✔ Test 4 Passed: Vault key schema stores one wrapped key per user and vault items are versioned.");
   passedCount++;
 
   console.log(`\nAll ${passedCount} Phase 1C model schema tests completed successfully!`);

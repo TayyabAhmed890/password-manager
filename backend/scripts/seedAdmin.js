@@ -11,9 +11,6 @@ const {
   generateRecoveryCode,
 } = require("../src/utils/recoveryCode");
 
-// Generate a secure recovery code.
-const { formattedCode, rawCode } = generateRecoveryCode();
-
 const seedAdmin = async () => {
   try {
     // Validate required environment variables.
@@ -29,32 +26,29 @@ const seedAdmin = async () => {
       );
     }
 
-    if (password.length < 12) {
+    if (password.length < 12 || Buffer.byteLength(password, "utf8") > 72) {
       throw new Error(
-        "Use an admin password with at least 12 characters."
+        "Admin password must be at least 12 characters and no more than 72 UTF-8 bytes."
       );
     }
 
     // Connect to MongoDB before querying users.
     await connectDB();
 
-    // Check whether this admin account already exists.
-    const existingAdmin = await User.findOne({ email });
+    const existingUser = await User.findOne({ email });
 
-    if (existingAdmin) {
-      if (existingAdmin.role !== "admin") {
-        existingAdmin.role = "admin";
-
-        // Invalidate existing sessions after changing role.
-        existingAdmin.tokenVersion += 1;
-
-        await existingAdmin.save();
-      }
-
+    if (existingUser?.role === "admin") {
       console.log("Admin account already exists.");
       return;
     }
 
+    if (existingUser) {
+      throw new Error(
+        "That email belongs to a non-admin account. Refusing to promote it."
+      );
+    }
+
+    const { formattedCode, rawCode } = generateRecoveryCode();
     // Hash the password before storing it.
     const passwordHash = await bcrypt.hash(password, 12);
     // Hash the recovery code before storing it.
@@ -88,4 +82,8 @@ const seedAdmin = async () => {
   }
 };
 
-seedAdmin();
+if (require.main === module) {
+  seedAdmin();
+}
+
+module.exports = seedAdmin;

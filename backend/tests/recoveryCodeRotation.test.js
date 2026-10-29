@@ -20,6 +20,9 @@ function createMockContext(body) {
       jsonResponse = payload;
       return this;
     },
+    set() {
+      return this;
+    },
     clearCookie(name, options) {
       clearedCookies.push({ name, options });
       return this;

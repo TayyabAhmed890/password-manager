@@ -2,6 +2,11 @@ const assert = require("assert");
 const mongoose = require("mongoose");
 process.env.VAULT_KEY = process.env.VAULT_KEY || "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 const Password = require("../src/models/store.model");
+const dek = Buffer.alloc(32, 7);
+const vaultKeyPath = require.resolve("../src/utils/userVaultKey");
+require.cache[vaultKeyPath] = {
+  exports: async () => Buffer.from(dek),
+};
 const { updatePassword } = require("../src/controllers/store.controllers");
 const { encrypt, decrypt } = require("../src/utils/encryption");
 
@@ -44,7 +49,7 @@ async function runTests() {
   const recordId = new mongoose.Types.ObjectId().toString();
 
   const originalPass = "OldVaultPassword@123";
-  const initialEnc = encrypt(originalPass);
+  const initialEnc = encrypt(originalPass, dek);
 
   // In-memory mock document
   let mockRecord = {
@@ -190,7 +195,12 @@ async function runTests() {
     assert.notStrictEqual(mockRecord.authTag, initialEnc.authTag, "authTag must be freshly generated");
 
     // Decrypt the newly stored record and verify exact match
-    const decrypted = decrypt(mockRecord.encryptedPassword, mockRecord.iv, mockRecord.authTag);
+    const decrypted = decrypt(
+      mockRecord.encryptedPassword,
+      mockRecord.iv,
+      mockRecord.authTag,
+      dek
+    );
     assert.strictEqual(decrypted, newPlaintextPass, "Decrypted password must match new plaintext password");
     console.log("✔ Test 7 Passed: Password successfully re-encrypted with fresh IV/authTag and verified via decrypt().");
     passedCount++;

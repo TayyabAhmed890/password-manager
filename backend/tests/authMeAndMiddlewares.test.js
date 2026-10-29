@@ -32,6 +32,9 @@ function createMockContext({ cookies = {}, headers = {}, params = {}, query = {}
       jsonResponse = payload;
       return this;
     },
+    set() {
+      return this;
+    },
   };
 
   return { req, res, getStatus: () => statusCode, getJson: () => jsonResponse };
@@ -158,6 +161,7 @@ async function runTests() {
     assert.strictEqual(json.user.id, userMock._id);
     assert.strictEqual(json.user.email, userMock.email);
     assert.strictEqual(json.user.role, "user");
+    assert.strictEqual(json.user.hasRecoveryCode, false);
     console.log("✔ Test 5 Passed: getCurrentUser (GET /api/auth/me) returns id, email, role.");
     passedCount++;
   }

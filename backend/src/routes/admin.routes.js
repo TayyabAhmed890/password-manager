@@ -3,6 +3,7 @@ const express = require("express");
 
 const protect = require("../middlewares/auth.middleware");
 const requireAdmin = require("../middlewares/admin.middleware");
+const csrfProtection = require("../middlewares/csrf.middleware");
 
 const {
   getAllUsers,
@@ -12,8 +13,14 @@ const {
 const router = express.Router();
 
 // Both routes require authentication and admin permission.
-router.get("/users", protect, requireAdmin, getAllUsers);
+router.get("/users", protect, requireAdmin, csrfProtection, getAllUsers);
 
-router.delete("/users/:id", protect, requireAdmin, deleteUser);
+router.delete(
+  "/users/:id",
+  protect,
+  requireAdmin,
+  csrfProtection,
+  deleteUser
+);
 
 module.exports = router;

@@ -6,19 +6,100 @@ const {
   logout,
   forgotPassword,
   getCurrentUser,
+  rotateRecoveryCode,
+  changePassword,
+  deleteOwnAccount,
 } = require("../controllers/auth.controllers");
 const protect = require("../middlewares/auth.middleware");
+const requireUser = require("../middlewares/user.middleware");
+const {
+  createRateLimit,
+  normalizeEmailIdentifier,
+} = require("../middlewares/rateLimit.middleware");
+const csrfProtection = require("../middlewares/csrf.middleware");
 
 const router = express.Router();
 
+const registerRateLimit = createRateLimit({
+  name: "register",
+  limit: 5,
+  window: "15 m",
+});
+const loginRateLimit = createRateLimit({
+  name: "login",
+  limit: 10,
+  window: "15 m",
+});
+const loginAccountRateLimit = createRateLimit({
+  name: "login-account",
+  limit: 5,
+  window: "15 m",
+  identifier: (req) =>
+    `${req.ip || req.socket.remoteAddress || "unknown"}:${normalizeEmailIdentifier(req)}`,
+});
+const recoveryRateLimit = createRateLimit({
+  name: "recovery",
+  limit: 5,
+  window: "1 h",
+});
+const recoveryAccountRateLimit = createRateLimit({
+  name: "recovery-account",
+  limit: 3,
+  window: "1 h",
+  identifier: (req) =>
+    `${req.ip || req.socket.remoteAddress || "unknown"}:${normalizeEmailIdentifier(req)}`,
+});
+const accountSecurityRateLimit = createRateLimit({
+  name: "account-security",
+  limit: 5,
+  window: "1 h",
+  identifier: (req) => req.user.id,
+});
+
 router.get("/me", protect, getCurrentUser);
 
-router.post("/register", register);
+router.post("/register", csrfProtection, registerRateLimit, register);
 
-router.post("/login", login);
+router.post(
+  "/login",
+  csrfProtection,
+  loginRateLimit,
+  loginAccountRateLimit,
+  login
+);
 
-router.post("/logout", protect, logout);
+router.post("/logout", protect, csrfProtection, logout);
+router.post(
+  "/recovery-code",
+  protect,
+  requireUser,
+  csrfProtection,
+  accountSecurityRateLimit,
+  rotateRecoveryCode
+);
+router.post(
+  "/change-password",
+  protect,
+  requireUser,
+  csrfProtection,
+  accountSecurityRateLimit,
+  changePassword
+);
+router.delete(
+  "/account",
+  protect,
+  requireUser,
+  csrfProtection,
+  accountSecurityRateLimit,
+  deleteOwnAccount
+);
 
-router.post("/forgot-password", forgotPassword);
+router.post(
+  "/forgot-password",
+  csrfProtection,
+  recoveryRateLimit,
+  recoveryAccountRateLimit,
+  forgotPassword
+);
 
 module.exports = router;

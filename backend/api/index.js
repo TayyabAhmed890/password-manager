@@ -1,19 +1,17 @@
 const app = require("../src/index");
-const connectDB = require("../src/db/connectDB");
+const validateEnv = require("../src/config/validateEnv");
 
-// Vercel serverless function entry handler
-module.exports = async (req, res) => {
+// Express middleware initializes or reuses the database connection for API requests.
+module.exports = (req, res) => {
   try {
-    // Ensure MongoDB connection is initialized before processing request
-    await connectDB();
-  } catch (err) {
-    console.error("Vercel serverless DB connection error:", err.message);
+    validateEnv();
+  } catch (error) {
+    console.error("Application configuration error:", error.message);
     return res.status(500).json({
       success: false,
-      message: "Database connection failed in serverless function.",
+      message: "Application configuration error.",
     });
   }
 
-  // Pass request to Express app
   return app(req, res);
 };

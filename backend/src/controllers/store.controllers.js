@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Password = require("../models/store.model");
+const getUserVaultKey = require("../utils/userVaultKey");
 
 const {
   encrypt,
@@ -210,11 +211,14 @@ const createPassword = async (req, res) => {
     //
     // We do NOT hash it.
     // ----------------------------------------------------------
-    const {
-      encrypted,
-      iv,
-      authTag,
-    } = encrypt(password);
+    const dek = await getUserVaultKey(userId);
+    let encryptedPassword;
+
+    try {
+      encryptedPassword = encrypt(password, dek);
+    } finally {
+      dek.fill(0);
+    }
 
     // ----------------------------------------------------------
     // Store only the encrypted password and its decryption
@@ -225,9 +229,10 @@ const createPassword = async (req, res) => {
       website: cleanWebsite,
       email: cleanEmail,
 
-      encryptedPassword: encrypted,
-      iv,
-      authTag,
+      encryptedPassword: encryptedPassword.encrypted,
+      iv: encryptedPassword.iv,
+      authTag: encryptedPassword.authTag,
+      encryptionVersion: 1,
     });
 
     // ----------------------------------------------------------
@@ -314,7 +319,7 @@ const revealPassword = async (req, res) => {
       userId,
     })
       .select(
-        "encryptedPassword iv authTag"
+        "encryptedPassword iv authTag encryptionVersion"
       )
       .lean();
 
@@ -333,6 +338,13 @@ const revealPassword = async (req, res) => {
       });
     }
 
+    if (entry.encryptionVersion !== 1) {
+      return res.status(500).json({
+        success: false,
+        message: "This password could not be decrypted.",
+      });
+    }
+
     // ----------------------------------------------------------
     // Decrypt only this specific password.
     //
@@ -342,11 +354,17 @@ const revealPassword = async (req, res) => {
     let originalPassword;
 
     try {
-      originalPassword = decrypt(
-        entry.encryptedPassword,
-        entry.iv,
-        entry.authTag
-      );
+      const dek = await getUserVaultKey(userId);
+      try {
+        originalPassword = decrypt(
+          entry.encryptedPassword,
+          entry.iv,
+          entry.authTag,
+          dek
+        );
+      } finally {
+        dek.fill(0);
+      }
 
     } catch (error) {
       // Do not expose encryption/decryption internals to client.
@@ -533,11 +551,16 @@ const updatePassword = async (req, res) => {
       }
 
       // Encrypt with fresh random IV and authentication tag
-      const { encrypted, iv, authTag } = encrypt(password);
-
-      savedPassword.encryptedPassword = encrypted;
-      savedPassword.iv = iv;
-      savedPassword.authTag = authTag;
+      const dek = await getUserVaultKey(userId);
+      try {
+        const encryptedPassword = encrypt(password, dek);
+        savedPassword.encryptedPassword = encryptedPassword.encrypted;
+        savedPassword.iv = encryptedPassword.iv;
+        savedPassword.authTag = encryptedPassword.authTag;
+        savedPassword.encryptionVersion = 1;
+      } finally {
+        dek.fill(0);
+      }
     }
 
     // Save updated record

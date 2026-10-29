@@ -12,8 +12,16 @@ const protect = require(
   "../middlewares/auth.middleware"
 );
 const requireUser = require("../middlewares/user.middleware");
+const { createRateLimit } = require("../middlewares/rateLimit.middleware");
+const csrfProtection = require("../middlewares/csrf.middleware");
 
 const router = express.Router();
+const revealRateLimit = createRateLimit({
+  name: "vault-reveal",
+  limit: 30,
+  window: "1 m",
+  identifier: (req) => req.user.id,
+});
 
 
 // GET /api/store
@@ -21,6 +29,7 @@ router.get(
   "/",
   protect,
   requireUser,
+  csrfProtection,
   getPasswords
 );
 
@@ -30,6 +39,7 @@ router.post(
   "/create",
   protect,
   requireUser,
+  csrfProtection,
   createPassword
 );
 
@@ -39,16 +49,19 @@ router.get(
   "/:id/password",
   protect,
   requireUser,
+  csrfProtection,
+  revealRateLimit,
   revealPassword
 );
 
 // PATCH /api/store/:id
-router.patch("/:id", protect, requireUser, updatePassword);
+router.patch("/:id", protect, requireUser, csrfProtection, updatePassword);
 
 // DELETE /api/store/:id
 router.delete("/:id", 
   protect,
   requireUser,
+  csrfProtection,
   deletePassword
 );
 

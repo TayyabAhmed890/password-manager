@@ -1,5 +1,18 @@
 const assert = require("assert");
 const express = require("express");
+const mongoose = require("mongoose");
+
+// Keep this HTTP test isolated from the configured database.
+const connectDBPath = require.resolve("../src/db/connectDB");
+let databaseConnectionError = null;
+require.cache[connectDBPath] = {
+  exports: async () => {
+    if (databaseConnectionError) {
+      throw databaseConnectionError;
+    }
+  },
+};
+
 const startServer = require("../src/index");
 const app = startServer.app;
 
@@ -51,8 +64,68 @@ async function runTests() {
   const baseUrl = `http://127.0.0.1:${port}`;
 
   try {
+    {
+      const res = await fetch(`${baseUrl}/health/live`);
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.headers.get("x-content-type-options"), "nosniff");
+      assert.strictEqual(res.headers.get("x-frame-options"), "SAMEORIGIN");
+      assert.strictEqual(res.headers.get("x-powered-by"), null);
+      assert.deepStrictEqual(await res.json(), {
+        success: true,
+        status: "alive",
+      });
+      console.log("✔ Health test passed: liveness works and security headers are present.");
+      passedCount++;
+    }
+
+    {
+      const res = await fetch(`${baseUrl}/health/ready`);
+      assert.strictEqual(res.status, 503);
+      assert.deepStrictEqual(await res.json(), {
+        success: false,
+        status: "not_ready",
+      });
+      console.log("✔ Health test passed: readiness reports a disconnected database.");
+      passedCount++;
+    }
+
+    {
+      const previousReadyState = mongoose.connection.readyState;
+      mongoose.connection.readyState = 1;
+
+      try {
+        const res = await fetch(`${baseUrl}/health/ready`);
+        assert.strictEqual(res.status, 200);
+        assert.deepStrictEqual(await res.json(), {
+          success: true,
+          status: "ready",
+        });
+        console.log("✔ Health test passed: readiness reports a connected database.");
+        passedCount++;
+      } finally {
+        mongoose.connection.readyState = previousReadyState;
+      }
+    }
+
+    {
+      databaseConnectionError = new Error("sensitive database connection detail");
+
+      try {
+        const res = await fetch(`${baseUrl}/api/auth/me`);
+        assert.strictEqual(res.status, 503);
+        assert.deepStrictEqual(await res.json(), {
+          success: false,
+          message: "Service temporarily unavailable.",
+        });
+        console.log("✔ API test passed: database failure returns a safe 503 response.");
+        passedCount++;
+      } finally {
+        databaseConnectionError = null;
+      }
+    }
+
     // -------------------------------------------------------------
-    // Test 2: Unknown Route returns 404 JSON
+    // Unknown Route returns 404 JSON
     // -------------------------------------------------------------
     {
       const res = await fetch(`${baseUrl}/api/non-existent-route-12345`);
@@ -60,12 +133,12 @@ async function runTests() {
       const json = await res.json();
       assert.strictEqual(json.success, false);
       assert.strictEqual(json.message, "Route not found.");
-      console.log("✔ Test 2 Passed: Unknown route handled cleanly with 404 JSON.");
+      console.log("✔ Test Passed: Unknown route handled cleanly with 404 JSON.");
       passedCount++;
     }
 
     // -------------------------------------------------------------
-    // Test 3: Malformed JSON payload caught by body-parser and formatted by error handler
+    // Malformed JSON payload is formatted by the error handler
     // -------------------------------------------------------------
     {
       const res = await fetch(`${baseUrl}/api/auth/login`, {
@@ -78,12 +151,12 @@ async function runTests() {
       const json = await res.json();
       assert.strictEqual(json.success, false);
       assert.strictEqual(json.message, "Malformed JSON payload in request body.");
-      console.log("✔ Test 3 Passed: Malformed JSON body caught by error handler and returned as 400 JSON.");
+      console.log("✔ Test Passed: Malformed JSON body is returned as 400 JSON.");
       passedCount++;
     }
 
     // -------------------------------------------------------------
-    // Test 4: Payload too large (exceeds 10kb limit) returns 413 JSON
+    // Payload too large (exceeds 10kb limit) returns 413 JSON
     // -------------------------------------------------------------
     {
       const largePayload = JSON.stringify({ data: "x".repeat(15 * 1024) }); // ~15kb
@@ -97,7 +170,7 @@ async function runTests() {
       const json = await res.json();
       assert.strictEqual(json.success, false);
       assert.strictEqual(json.message, "Request payload too large.");
-      console.log("✔ Test 4 Passed: Payload exceeding 10kb returns 413 JSON.");
+      console.log("✔ Test Passed: Payload exceeding 10kb returns 413 JSON.");
       passedCount++;
     }
   } finally {

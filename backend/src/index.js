@@ -1,31 +1,29 @@
 const cors = require("cors");
 const express = require("express");
 const cookieParser = require("cookie-parser");
+const helmet = require("helmet");
 require("dotenv").config();
 
 const connectDB = require("./db/connectDB");
 const authRoutes = require("./routes/auth.routes");
 const storeRoutes = require("./routes/store.routes");
 const adminRoutes = require("./routes/admin.routes");
+const mongoose = require("mongoose");
+const getClientOrigins = require("./config/clientOrigins");
 
 const app = express();
+app.set("trust proxy", process.env.VERCEL ? 1 : false);
 
-const PORT = process.env.PORT || 5000;
-
-// Allowed frontend origins (supports comma-separated list in CLIENT_URL)
-const rawClientUrl = process.env.CLIENT_URL || "http://localhost:5173";
-const allowedOrigins = rawClientUrl.split(",").map((url) => url.trim());
-
-// In development, ensure localhost:5173 and localhost:3000 are always permitted
-if (process.env.NODE_ENV !== "production") {
-  if (!allowedOrigins.includes("http://localhost:5173")) allowedOrigins.push("http://localhost:5173");
-  if (!allowedOrigins.includes("http://localhost:3000")) allowedOrigins.push("http://localhost:3000");
-}
+const allowedOrigins = getClientOrigins();
 
 
 // ============================================================
 // MIDDLEWARE
 // ============================================================
+
+app.use(helmet({
+  contentSecurityPolicy: false,
+}));
 
 // Parse cookies from incoming requests.
 // Used by auth middleware to read the JWT cookie.
@@ -58,18 +56,51 @@ app.use(
 );
 
 
-// Ensure database connection is initialized before processing any request
-app.use(async (req, res, next) => {
+// Ignore favicon requests without cluttering 404 logs
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+
+app.get("/health/live", (req, res) => {
+  return res.status(200).json({
+    success: true,
+    status: "alive",
+  });
+});
+
+app.get("/health/ready", async (req, res) => {
   try {
     await connectDB();
-    next();
-  } catch (err) {
-    next(err);
+
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        status: "not_ready",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      status: "ready",
+    });
+  } catch {
+    return res.status(503).json({
+      success: false,
+      status: "not_ready",
+    });
   }
 });
 
-// Ignore favicon requests without cluttering 404 logs
-app.get("/favicon.ico", (req, res) => res.status(204).end());
+// Database-dependent APIs share one in-flight connection attempt.
+app.use("/api", async (req, res, next) => {
+  try {
+    await connectDB();
+    return next();
+  } catch {
+    return res.status(503).json({
+      success: false,
+      message: "Service temporarily unavailable.",
+    });
+  }
+});
 
 
 // ============================================================

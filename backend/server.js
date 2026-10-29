@@ -1,10 +1,12 @@
 const app = require("./src/index");
 const connectDB = require("./src/db/connectDB");
+const validateEnv = require("./src/config/validateEnv");
 
 const PORT = process.env.PORT || 7000;
 
 const startServer = async () => {
   try {
+    validateEnv();
     await connectDB();
 
     app.listen(PORT, () => {

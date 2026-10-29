@@ -1,41 +1,54 @@
 const mongoose = require("mongoose");
 
+let connectionPromise = null;
+
+mongoose.connection.on("error", (error) => {
+  console.error("MongoDB connection error:", error.message);
+});
+
+mongoose.connection.on("disconnected", () => {
+  console.warn("MongoDB disconnected.");
+});
+
 const connectDB = async () => {
-  // In serverless environments (Vercel), reuse existing active or connecting connection
-  if (mongoose.connection.readyState >= 1) {
-    return;
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
+
+  if (connectionPromise) {
+    return connectionPromise;
   }
 
   const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
 
-  // if mongoUri is Empty
   if (!mongoUri) {
-    throw new Error("MONGODB_URI is missing from environment variables.");
+    const error = new Error(
+      "MONGODB_URI is missing from environment variables."
+    );
+    console.error("MongoDB connection configuration error.");
+    throw error;
   }
 
-  // connect db logic
+  let pendingConnection;
   try {
-    await mongoose.connect(mongoUri, {
+    pendingConnection = mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 5000,
     });
+    connectionPromise = pendingConnection;
 
+    const connection = await pendingConnection;
     console.log("MongoDB connected successfully.");
-
-    mongoose.connection.on("error", (error) => {
-      console.error("MongoDB connection error:", error.message);
-    });
-
-    mongoose.connection.on("disconnected", () => {
-      console.warn("MongoDB disconnected.");
-    });
-
+    return connection;
   } catch (error) {
     console.error(
       "Unable to connect to MongoDB:",
       error.message
     );
-
     throw error;
+  } finally {
+    if (connectionPromise === pendingConnection) {
+      connectionPromise = null;
+    }
   }
 };
 
