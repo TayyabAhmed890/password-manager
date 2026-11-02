@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import process from 'node:process'
 import { afterEach, test } from 'node:test'
-import proxyRequest from '../api/[...path].js'
+import proxyRequest from '../api/proxy.js'
 
 const originalBackendUrl = process.env.BACKEND_URL
 const originalFetch = globalThis.fetch
@@ -55,7 +55,7 @@ test('proxies API requests to server-only BACKEND_URL and forwards auth headers'
   const response = createResponse()
   await proxyRequest({
     method: 'POST',
-    url: '/api/auth/login?source=web',
+    url: '/api/proxy?path=auth%2Flogin&source=web',
     headers: {
       'content-type': 'application/json',
       cookie: 'csrf-token=opaque',

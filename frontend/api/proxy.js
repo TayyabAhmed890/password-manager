@@ -67,20 +67,22 @@ export default async (req, res) => {
   }
 
   const incomingUrl = new URL(req.url, "https://frontend-proxy.invalid");
-  let requestPath = incomingUrl.pathname;
-  if (!requestPath.startsWith("/api/") && req.query?.path) {
-    const pathSegments = Array.isArray(req.query.path)
-      ? req.query.path
-      : [req.query.path];
-    requestPath = `/api/${pathSegments.map(encodeURIComponent).join("/")}`;
-  }
+  const rewrittenPath = req.query?.path || incomingUrl.searchParams.get("path");
+  const pathSegments = Array.isArray(rewrittenPath)
+    ? rewrittenPath.flatMap((segment) => String(segment).split("/"))
+    : String(rewrittenPath || "").split("/");
+  const safePathSegments = pathSegments.filter(Boolean);
 
-  if (!requestPath.startsWith("/api/")) {
+  if (safePathSegments.length === 0) {
     return res.status(404).json({
       success: false,
       message: "Route not found.",
     });
   }
+  const requestPath = `/api/${safePathSegments.map(encodeURIComponent).join("/")}`;
+  const forwardedQuery = new URLSearchParams(incomingUrl.searchParams);
+  forwardedQuery.delete("path");
+  const queryString = forwardedQuery.toString();
 
   const headers = new Headers();
   for (const headerName of forwardedRequestHeaders) {
@@ -90,7 +92,7 @@ export default async (req, res) => {
 
   try {
     const backendResponse = await fetch(
-      `${backendOrigin}${requestPath}${incomingUrl.search}`,
+      `${backendOrigin}${requestPath}${queryString ? `?${queryString}` : ""}`,
       {
         method: req.method,
         headers,
