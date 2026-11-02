@@ -5,23 +5,26 @@ const { Ratelimit } = require("@upstash/ratelimit");
 const limiters = new Map();
 let redisClient;
 
+const getRedisClient = () => {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (!url || !token) {
+    throw new Error("Upstash Redis configuration is missing.");
+  }
+
+  redisClient ||= new Redis({ url, token });
+  return redisClient;
+};
+
 const getRateLimiter = ({ name, limit, window }) => {
   const cacheKey = `${name}:${limit}:${window}`;
 
   if (!limiters.has(cacheKey)) {
-    const url = process.env.UPSTASH_REDIS_REST_URL;
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-    if (!url || !token) {
-      throw new Error("Upstash rate-limit configuration is missing.");
-    }
-
-    redisClient ||= new Redis({ url, token });
-
     limiters.set(
       cacheKey,
       new Ratelimit({
-        redis: redisClient,
+        redis: getRedisClient(),
         limiter: Ratelimit.slidingWindow(limit, window),
         prefix: `password-manager:${name}`,
       })
@@ -86,5 +89,6 @@ const normalizeEmailIdentifier = (req) =>
 
 module.exports = {
   createRateLimit,
+  getRedisClient,
   normalizeEmailIdentifier,
 };

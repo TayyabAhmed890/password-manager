@@ -13,6 +13,13 @@ async function runTests() {
   console.log("✔ Test 1 Passed: User model is registered as 'user'.");
   passedCount++;
 
+  const namePath = User.schema.path("name");
+  assert(namePath, "User name path must exist");
+  assert.strictEqual(namePath.options.maxlength, 80);
+  assert.strictEqual(namePath.options.default, "");
+  console.log("✔ User schema supports a bounded display name and remains compatible with existing accounts.");
+  passedCount++;
+
   // 2. Verify store.model.js userId field schema reference
   const userIdPath = Password.schema.path("userId");
   assert(userIdPath, "userId path must exist in Password schema");

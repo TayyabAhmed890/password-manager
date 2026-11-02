@@ -56,17 +56,30 @@ async function runTests() {
       NODE_ENV: "production",
       UPSTASH_REDIS_REST_URL: "https://example.upstash.io",
       UPSTASH_REDIS_REST_TOKEN: "non-secret-test-token",
-      CLIENT_URL: "https://frontend.example.com/path",
+      CLIENT_URL: "https://frontend.example.com",
+      ADMIN_URL: "https://admin.example.com/dashboard",
     }),
-    /CLIENT_URL must contain valid HTTP\(S\) origins without paths/
+    /CLIENT_URL and ADMIN_URL must contain valid HTTP\(S\) origins without paths/
   );
   validateEnv({
     ...validEnv,
     NODE_ENV: "production",
     CLIENT_URL: "https://frontend.example.com",
+    ADMIN_URL: "https://admin.example.com",
     UPSTASH_REDIS_REST_URL: "https://example.upstash.io",
     UPSTASH_REDIS_REST_TOKEN: "non-secret-test-token",
   });
+  assert.throws(
+    () => validateEnv({
+      ...validEnv,
+      NODE_ENV: "production",
+      CLIENT_URL: "https://same.example.com",
+      ADMIN_URL: "https://same.example.com/",
+      UPSTASH_REDIS_REST_URL: "https://example.upstash.io",
+      UPSTASH_REDIS_REST_TOKEN: "non-secret-test-token",
+    }),
+    /CLIENT_URL and ADMIN_URL must use different origins/
+  );
   console.log("✔ Test 4 Passed: Invalid secret formats and port values are rejected.");
 
   const secret = "sensitive-test-secret-value";

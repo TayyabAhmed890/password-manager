@@ -22,6 +22,18 @@ const revealRateLimit = createRateLimit({
   window: "1 m",
   identifier: (req) => req.user.id,
 });
+const createRateLimitByUser = createRateLimit({
+  name: "vault-create",
+  limit: 10,
+  window: "1 m",
+  identifier: (req) => req.user.id,
+});
+const updateRateLimitByUser = createRateLimit({
+  name: "vault-update",
+  limit: 20,
+  window: "1 m",
+  identifier: (req) => req.user.id,
+});
 
 
 // GET /api/store
@@ -40,6 +52,7 @@ router.post(
   protect,
   requireUser,
   csrfProtection,
+  createRateLimitByUser,
   createPassword
 );
 
@@ -55,7 +68,14 @@ router.get(
 );
 
 // PATCH /api/store/:id
-router.patch("/:id", protect, requireUser, csrfProtection, updatePassword);
+router.patch(
+  "/:id",
+  protect,
+  requireUser,
+  csrfProtection,
+  updateRateLimitByUser,
+  updatePassword
+);
 
 // DELETE /api/store/:id
 router.delete("/:id", 

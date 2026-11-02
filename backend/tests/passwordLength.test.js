@@ -30,6 +30,7 @@ User.create = async (documents, options) => {
   assert(options.session);
   return documents.map((data) => ({
     _id: "670b00000000000000000001",
+    name: data.name,
     email: data.email,
     role: "user",
     tokenVersion: 0,
@@ -51,7 +52,7 @@ function createMockContext(body) {
   let jsonResponse = null;
   const cookies = [];
 
-  const req = { body };
+  const req = { body: { name: "Test User", ...body } };
   const res = {
     status(code) {
       statusCode = code;
@@ -101,6 +102,7 @@ async function runTests() {
       "Registration must not set an authentication cookie."
     );
     assert.strictEqual(transactionCount, 1);
+    assert.strictEqual(ctx.getJson().user.name, "Test User");
     assert.strictEqual(createdVaultKey.userId, "670b00000000000000000001");
     assert.strictEqual(createdVaultKey.keyVersion, 1);
     assert.strictEqual(createdVaultKey.dek, undefined);
@@ -113,6 +115,19 @@ async function runTests() {
       32
     );
     console.log("✔ Test 1 Passed: Normal password (18 bytes) accepted by byte-length validator.");
+    passedCount++;
+  }
+
+  {
+    const ctx = createMockContext({
+      name: "   ",
+      email: "name-required@example.com",
+      password: "StrongPassword123!",
+    });
+    await register(ctx.req, ctx.res);
+    assert.strictEqual(ctx.getStatus(), 400);
+    assert.match(ctx.getJson().message, /Name/);
+    console.log("✔ Registration rejects a missing display name.");
     passedCount++;
   }
 

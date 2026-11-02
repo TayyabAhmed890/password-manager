@@ -1,5 +1,6 @@
 const validateEnv = (env = process.env) => {
   const getClientOrigins = require("./clientOrigins");
+  const { hasOverlappingLoginOrigins } = require("../utils/loginAudience");
   const errors = [];
   const mongoUri = env.MONGODB_URI || env.MONGO_URI;
 
@@ -39,7 +40,7 @@ const validateEnv = (env = process.env) => {
       try {
         getClientOrigins(env);
       } catch {
-        errors.push("CLIENT_URL must contain valid HTTP(S) origins without paths.");
+        errors.push("CLIENT_URL and ADMIN_URL must contain valid HTTP(S) origins without paths.");
       }
     }
 
@@ -47,6 +48,14 @@ const validateEnv = (env = process.env) => {
       errors.push(
         "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production."
       );
+    }
+
+    try {
+      if (hasOverlappingLoginOrigins(env)) {
+        errors.push("CLIENT_URL and ADMIN_URL must use different origins.");
+      }
+    } catch {
+      // The origin format validation above reports malformed values.
     }
 
     if (

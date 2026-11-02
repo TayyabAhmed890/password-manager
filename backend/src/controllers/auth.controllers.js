@@ -8,6 +8,7 @@ const VaultKey = require("../models/vaultKey.model");
 const generateToken = require("../utils/token");
 const { setAuthCookie, clearAuthCookie } = require("../utils/authCookie");
 const { wrapDek } = require("../utils/encryption");
+const { getLoginAudience } = require("../utils/loginAudience");
 
 const {
   generateRecoveryCode,
@@ -21,7 +22,7 @@ const {
 
 const register = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { name, email, password } = req.body;
 
     // ----------------------------------------------------------
     // Validate input types first.
@@ -30,15 +31,17 @@ const register = async (req, res) => {
     // email.trim() when email is not a string.
     // ----------------------------------------------------------
     if (
+      typeof name !== "string" ||
       typeof email !== "string" ||
       typeof password !== "string"
     ) {
       return res.status(400).json({
         success: false,
-        message: "Email and password are required.",
+        message: "Name, email and password are required.",
       });
     }
 
+    const cleanName = name.trim();
     // Normalize email so:
     // Test@Email.com
     // test@email.com
@@ -50,10 +53,17 @@ const register = async (req, res) => {
     //
     // Spaces can technically be part of a password,
     // so we should not silently modify the user's password.
-    if (!cleanEmail || password.length === 0) {
+    if (!cleanName || !cleanEmail || password.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Email and password cannot be empty.",
+        message: "Name, email and password cannot be empty.",
+      });
+    }
+
+    if (cleanName.length > 80) {
+      return res.status(400).json({
+        success: false,
+        message: "Name is too long.",
       });
     }
 
@@ -149,6 +159,7 @@ const register = async (req, res) => {
       await session.withTransaction(async () => {
         const [createdUser] = await User.create(
           [{
+            name: cleanName,
             email: cleanEmail,
             passwordHash,
             recoveryCodeHash,
@@ -192,6 +203,7 @@ const register = async (req, res) => {
 
       user: {
         id: user._id,
+        name: user.name,
         email: user.email,
       },
     });
@@ -292,6 +304,28 @@ const login = async (req, res) => {
       });
     }
 
+    const loginAudience = getLoginAudience(req);
+    if (!loginAudience) {
+      return res.status(403).json({
+        success: false,
+        message: "Open the correct app to sign in.",
+      });
+    }
+
+    if (loginAudience === "admin" && user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "This dashboard is for admin accounts. Please use the user app.",
+      });
+    }
+
+    if (loginAudience === "user" && user.role === "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Admin accounts can't sign in to the user app. Please use the admin dashboard.",
+      });
+    }
+
     // ----------------------------------------------------------
     // Generate JWT.
     //
@@ -320,7 +354,9 @@ const login = async (req, res) => {
 
       user: {
         id: user._id,
+        name: user.name,
         email: user.email,
+        role: user.role,
       },
     });
 
@@ -581,7 +617,7 @@ const forgotPassword = async (req, res) => {
 const getCurrentUser = async (req, res) => {
   try {
     const user = await User.findById(req.user.id)
-      .select("email role recoveryCodeHash")
+      .select("name email role recoveryCodeHash")
       .lean();
 
     if (!user) {
@@ -596,6 +632,7 @@ const getCurrentUser = async (req, res) => {
       success: true,
       user: {
         id: req.user.id,
+        name: user.name,
         email: user.email,
         role: user.role,
         hasRecoveryCode: Boolean(user.recoveryCodeHash),

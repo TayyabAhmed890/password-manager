@@ -61,6 +61,7 @@ function mockUserQuery(query, callback) {
 async function runTests() {
   state = {
     _id: userId,
+    name: "Test User",
     email: "person@example.com",
     role: "user",
     passwordHash: await bcrypt.hash("CurrentPassword123!", 4),
@@ -119,7 +120,7 @@ async function runTests() {
     const context = createContext();
     User.findById = (id) => ({
       select: (fields) => {
-        assert.strictEqual(fields, "email role recoveryCodeHash");
+        assert.strictEqual(fields, "name email role recoveryCodeHash");
         return {
           lean: async () => (state && id === userId ? { ...state } : null),
         };
@@ -128,6 +129,7 @@ async function runTests() {
     await getCurrentUser(context.req, context.res);
     assert.strictEqual(context.getStatus(), 200);
     assert.strictEqual(context.getBody().user.hasRecoveryCode, true);
+    assert.strictEqual(context.getBody().user.name, "Test User");
     assert.strictEqual(context.getBody().user.recoveryCodeHash, undefined);
     console.log("✔ Profile returns recovery-code status without exposing its hash.");
   }

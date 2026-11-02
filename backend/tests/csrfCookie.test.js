@@ -35,8 +35,10 @@ function createContext(headers = {}, cookies = {}) {
 async function runTests() {
   const originalNodeEnv = process.env.NODE_ENV;
   const originalClientUrl = process.env.CLIENT_URL;
+  const originalAdminUrl = process.env.ADMIN_URL;
   process.env.NODE_ENV = "test";
   process.env.CLIENT_URL = "https://frontend.example.com";
+  process.env.ADMIN_URL = "https://admin.example.com";
 
   try {
     let nextCalled = false;
@@ -48,6 +50,16 @@ async function runTests() {
     });
     assert.strictEqual(nextCalled, true);
     console.log("✔ Test 1 Passed: Configured Origin is accepted.");
+
+    nextCalled = false;
+    const allowedAdminOrigin = createContext({
+      origin: "https://admin.example.com",
+    });
+    csrfProtection(allowedAdminOrigin.req, allowedAdminOrigin.res, () => {
+      nextCalled = true;
+    });
+    assert.strictEqual(nextCalled, true);
+    console.log("✔ Test 1a Passed: Configured ADMIN_URL origin is accepted.");
 
     const disallowedOrigin = createContext({
       origin: "https://attacker.example",
@@ -118,6 +130,12 @@ async function runTests() {
       delete process.env.CLIENT_URL;
     } else {
       process.env.CLIENT_URL = originalClientUrl;
+    }
+
+    if (originalAdminUrl === undefined) {
+      delete process.env.ADMIN_URL;
+    } else {
+      process.env.ADMIN_URL = originalAdminUrl;
     }
   }
 }

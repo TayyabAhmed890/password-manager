@@ -1,6 +1,13 @@
 const mongoose = require("mongoose");
 const Password = require("../models/store.model");
 const getUserVaultKey = require("../utils/userVaultKey");
+const {
+  cachePassword,
+  cacheVaultList,
+  getCachedPassword,
+  getCachedVaultList,
+  invalidateVaultCache,
+} = require("../utils/vaultCache");
 
 const {
   encrypt,
@@ -40,14 +47,29 @@ const getPasswords = async (req, res) => {
     // This prevents every saved password from being decrypted
     // and sent to the client on every request.
     // ----------------------------------------------------------
-    const passwords = await Password.find({
-      userId,
-    })
-      .select("website email createdAt")
-      .sort({
-        createdAt: -1,
+    let passwords = await getCachedVaultList(userId);
+    const cacheHit = Array.isArray(passwords);
+
+    if (!cacheHit) {
+      passwords = await Password.find({
+        userId,
       })
-      .lean();
+        .select("website email createdAt")
+        .sort({
+          createdAt: -1,
+        })
+        .lean();
+
+      passwords = passwords.map((entry) => ({
+        id: String(entry._id),
+        website: entry.website,
+        email: entry.email,
+        createdAt: entry.createdAt,
+      }));
+      await cacheVaultList(userId, passwords);
+    }
+
+    console.info(`[vault-cache] GET /api/store source=${cacheHit ? "Upstash" : "MongoDB"}`);
 
     // ----------------------------------------------------------
     // Empty vault is not an error.
@@ -64,12 +86,7 @@ const getPasswords = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Passwords fetched successfully.",
-      data: passwords.map((entry) => ({
-        id: entry._id,
-        website: entry.website,
-        email: entry.email,
-        createdAt: entry.createdAt,
-      })),
+      data: passwords,
     });
 
   } catch (error) {
@@ -234,6 +251,13 @@ const createPassword = async (req, res) => {
       authTag: encryptedPassword.authTag,
       encryptionVersion: 1,
     });
+    await invalidateVaultCache(userId);
+    await cachePassword(userId, String(savedPassword._id), {
+      encryptedPassword: savedPassword.encryptedPassword,
+      iv: savedPassword.iv,
+      authTag: savedPassword.authTag,
+      encryptionVersion: savedPassword.encryptionVersion,
+    });
 
     // ----------------------------------------------------------
     // Never return the plaintext password or encryption data
@@ -314,14 +338,32 @@ const revealPassword = async (req, res) => {
     // User A must NEVER be able to reveal User B's password
     // simply by knowing/guessing the entry ID.
     // ----------------------------------------------------------
-    const entry = await Password.findOne({
-      _id: id,
-      userId,
-    })
-      .select(
-        "encryptedPassword iv authTag encryptionVersion"
-      )
-      .lean();
+    let entry = await getCachedPassword(userId, id);
+    const cacheHit = Boolean(
+      entry &&
+      typeof entry.encryptedPassword === "string" &&
+      typeof entry.iv === "string" &&
+      typeof entry.authTag === "string"
+    );
+
+    if (!cacheHit) {
+      entry = await Password.findOne({
+        _id: id,
+        userId,
+      })
+        .select(
+          "encryptedPassword iv authTag encryptionVersion"
+        )
+        .lean();
+
+      if (entry) {
+        await cachePassword(userId, id, entry);
+      }
+    }
+
+    console.info(
+      `[vault-cache] GET /api/store/:id/password source=${cacheHit ? "Upstash" : "MongoDB"}`
+    );
 
     // ----------------------------------------------------------
     // Same response whether:
@@ -565,6 +607,13 @@ const updatePassword = async (req, res) => {
 
     // Save updated record
     await savedPassword.save();
+    await invalidateVaultCache(userId, id);
+    await cachePassword(userId, id, {
+      encryptedPassword: savedPassword.encryptedPassword,
+      iv: savedPassword.iv,
+      authTag: savedPassword.authTag,
+      encryptionVersion: savedPassword.encryptionVersion,
+    });
 
     return res.status(200).json({
       success: true,
@@ -648,6 +697,8 @@ const deletePassword = async (req, res) => {
         message: "Password entry not found.",
       });
     }
+
+    await invalidateVaultCache(userId, id);
 
     return res.status(200).json({
       success: true,
