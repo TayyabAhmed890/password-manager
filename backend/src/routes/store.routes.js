@@ -16,6 +16,11 @@ const { createRateLimit } = require("../middlewares/rateLimit.middleware");
 const csrfProtection = require("../middlewares/csrf.middleware");
 
 const router = express.Router();
+router.use((req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
+
 const revealRateLimit = createRateLimit({
   name: "vault-reveal",
   limit: 30,

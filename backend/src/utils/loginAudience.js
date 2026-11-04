@@ -29,6 +29,9 @@ const getLoginAudience = (req, env = process.env) => {
   }
 
   const adminOrigins = normalizeOrigins(env.ADMIN_URL);
+  if (env.NODE_ENV !== "production") {
+    adminOrigins.push("http://localhost:5174", "http://127.0.0.1:5174");
+  }
   if (adminOrigins.includes(normalizedOrigin)) return "admin";
 
   const clientOrigins = normalizeOrigins(env.CLIENT_URL || "http://localhost:5173");

@@ -28,6 +28,13 @@ async function runTests() {
     "user",
     "Password schema userId ref must be exactly 'user' to match User modelName"
   );
+  assert.strictEqual(userIdPath.options.index, undefined);
+  assert(
+    Password.schema.indexes().some(([index]) =>
+      index.userId === 1 && index.createdAt === -1
+    ),
+    "Password queries should use the compound userId/createdAt index"
+  );
   console.log("✔ Test 2 Passed: Password schema userId references 'user' with matching casing.");
   passedCount++;
 

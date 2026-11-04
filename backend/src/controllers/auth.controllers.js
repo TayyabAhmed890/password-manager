@@ -9,6 +9,12 @@ const generateToken = require("../utils/token");
 const { setAuthCookie, clearAuthCookie } = require("../utils/authCookie");
 const { wrapDek } = require("../utils/encryption");
 const { getLoginAudience } = require("../utils/loginAudience");
+const { invalidateAdminUsersCache } = require("../utils/adminUsersCache");
+const {
+  getPasswordValidationError,
+  isValidEmail,
+  normalizeEmail,
+} = require("../utils/inputValidation");
 
 const {
   generateRecoveryCode,
@@ -22,7 +28,7 @@ const {
 
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password } = req.body || {};
 
     // ----------------------------------------------------------
     // Validate input types first.
@@ -47,7 +53,7 @@ const register = async (req, res) => {
     // test@email.com
     //
     // are treated as the same account.
-    const cleanEmail = email.trim().toLowerCase();
+    const cleanEmail = normalizeEmail(email);
 
     // Password is intentionally NOT trimmed.
     //
@@ -73,27 +79,18 @@ const register = async (req, res) => {
     // bcrypt ignores bytes beyond 72 bytes in UTF-8 encoding.
     // We check byte length to properly handle multi-byte Unicode.
     // ----------------------------------------------------------
-    if (password.length < 8) {
+    const passwordValidationError = getPasswordValidationError(password);
+    if (passwordValidationError) {
       return res.status(400).json({
         success: false,
-        message: "Password must be at least 8 characters long.",
-      });
-    }
-
-    if (Buffer.byteLength(password, "utf8") > 72) {
-      return res.status(400).json({
-        success: false,
-        message: "Password cannot exceed 72 bytes.",
+        message: passwordValidationError,
       });
     }
 
     // ----------------------------------------------------------
     // Basic email format validation
     // ----------------------------------------------------------
-    const emailRegex =
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(cleanEmail)) {
+    if (!isValidEmail(cleanEmail)) {
       return res.status(400).json({
         success: false,
         message: "Please provide a valid email address.",
@@ -188,6 +185,8 @@ const register = async (req, res) => {
       throw new Error("User registration transaction did not complete.");
     }
 
+    await invalidateAdminUsersCache();
+
     // ----------------------------------------------------------
     // Return user information + recovery code.
     //
@@ -244,7 +243,7 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
 
     // ----------------------------------------------------------
     // Validate input types.
@@ -259,12 +258,26 @@ const login = async (req, res) => {
       });
     }
 
-    const cleanEmail = email.trim().toLowerCase();
+    const cleanEmail = normalizeEmail(email);
 
     if (!cleanEmail || password.length === 0) {
       return res.status(400).json({
         success: false,
         message: "Email and password cannot be empty.",
+      });
+    }
+
+    if (!isValidEmail(cleanEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid email address.",
+      });
+    }
+
+    if (Buffer.byteLength(password, "utf8") > 72) {
+      return res.status(400).json({
+        success: false,
+        message: "Password cannot exceed 72 bytes.",
       });
     }
 
@@ -347,6 +360,7 @@ const login = async (req, res) => {
     // Store JWT inside httpOnly cookie.
     // ----------------------------------------------------------
     setAuthCookie(res, token);
+    res.set("Cache-Control", "no-store");
 
     return res.status(200).json({
       success: true,
@@ -402,13 +416,13 @@ const logout = async (req, res) => {
 // FORGOT PASSWORD / RESET PASSWORD
 // ============================================================
 
-const forgotPassword = async (req, res) => {
+const forgotPassword = async (req, res, requiredRole) => {
   try {
     const {
       email,
       recoveryCode,
       newPassword,
-    } = req.body;
+    } = req.body || {};
 
     // ----------------------------------------------------------
     // Validate input types.
@@ -425,7 +439,7 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    const cleanEmail = email.trim().toLowerCase();
+    const cleanEmail = normalizeEmail(email);
 
     // ----------------------------------------------------------
     // Check required values.
@@ -447,18 +461,11 @@ const forgotPassword = async (req, res) => {
     // bcrypt ignores bytes beyond 72 bytes in UTF-8 encoding.
     // We check byte length to properly handle multi-byte Unicode.
     // ----------------------------------------------------------
-    if (newPassword.length < 8) {
+    const passwordValidationError = getPasswordValidationError(newPassword, "New password");
+    if (passwordValidationError) {
       return res.status(400).json({
         success: false,
-        message:
-          "New password must be at least 8 characters long.",
-      });
-    }
-
-    if (Buffer.byteLength(newPassword, "utf8") > 72) {
-      return res.status(400).json({
-        success: false,
-        message: "New password cannot exceed 72 bytes.",
+        message: passwordValidationError,
       });
     }
 
@@ -467,6 +474,7 @@ const forgotPassword = async (req, res) => {
     // ----------------------------------------------------------
     const user = await User.findOne({
       email: cleanEmail,
+      ...(requiredRole ? { role: requiredRole } : {}),
     });
 
     // If user does not exist OR recovery code has already
@@ -609,6 +617,8 @@ const forgotPassword = async (req, res) => {
   }
 };
 
+const forgotAdminPassword = (req, res) => forgotPassword(req, res, "admin");
+
 
 // ============================================================
 // GET CURRENT USER / SESSION CHECK
@@ -646,26 +656,6 @@ const getCurrentUser = async (req, res) => {
       message: "Unable to retrieve session.",
     });
   }
-};
-
-const validateNewPassword = (password, res) => {
-  if (typeof password !== "string" || password.length < 8) {
-    res.status(400).json({
-      success: false,
-      message: "New password must be at least 8 characters long.",
-    });
-    return false;
-  }
-
-  if (Buffer.byteLength(password, "utf8") > 72) {
-    res.status(400).json({
-      success: false,
-      message: "New password cannot exceed 72 bytes.",
-    });
-    return false;
-  }
-
-  return true;
 };
 
 const rotateRecoveryCode = async (req, res) => {
@@ -733,8 +723,12 @@ const changePassword = async (req, res) => {
       });
     }
 
-    if (!validateNewPassword(newPassword, res)) {
-      return;
+    const passwordValidationError = getPasswordValidationError(newPassword, "New password");
+    if (passwordValidationError) {
+      return res.status(400).json({
+        success: false,
+        message: passwordValidationError,
+      });
     }
 
     const user = await User.findById(req.user.id);
@@ -848,6 +842,54 @@ const deleteOwnAccount = async (req, res) => {
   }
 };
 
+const deleteAdminProfile = async (req, res) => {
+  const { currentPassword } = req.body || {};
+  if (typeof currentPassword !== "string" || !currentPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Current password is required.",
+    });
+  }
+
+  try {
+    const admin = await User.findOne({
+      _id: req.user.id,
+      role: "admin",
+    });
+    if (!admin || !(await bcrypt.compare(currentPassword, admin.passwordHash))) {
+      return res.status(401).json({
+        success: false,
+        message: "Current password is incorrect or admin profile cannot be deleted.",
+      });
+    }
+
+    const deletedAdmin = await User.findOneAndDelete({
+      _id: admin._id,
+      role: "admin",
+      passwordHash: admin.passwordHash,
+    });
+    if (!deletedAdmin) {
+      return res.status(409).json({
+        success: false,
+        message: "Admin profile changed during this request. Please try again.",
+      });
+    }
+
+    clearAuthCookie(res);
+    res.set("Cache-Control", "no-store");
+    return res.status(200).json({
+      success: true,
+      message: "Admin profile deleted.",
+    });
+  } catch (error) {
+    console.error("Admin profile deletion error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Unable to delete the admin profile right now.",
+    });
+  }
+};
+
 
 // ============================================================
 // EXPORT CONTROLLERS
@@ -858,8 +900,10 @@ module.exports = {
   login,
   logout,
   forgotPassword,
+  forgotAdminPassword,
   getCurrentUser,
   rotateRecoveryCode,
   changePassword,
   deleteOwnAccount,
+  deleteAdminProfile,
 };

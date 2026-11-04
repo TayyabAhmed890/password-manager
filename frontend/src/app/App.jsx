@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import HomePage from '../features/landing/pages/HomePage'
 import LoginPage from '../features/auth/pages/LoginPage'
 import RegisterPage from '../features/auth/pages/RegisterPage'
@@ -9,6 +9,7 @@ import VaultLayout from '../features/vault/components/VaultLayout'
 import VaultToastProvider from '../features/vault/components/VaultToastContext.jsx'
 import { AuthProvider } from './AuthContext.jsx'
 import { GuestOnly, RequireAuth } from './RouteGuards'
+import NotFoundPage from './NotFoundPage'
 
 function App() {
   return (
@@ -24,7 +25,7 @@ function App() {
               <Route path="/passwords" element={<PasswordPage />} />
               <Route path="/passwords/create" element={<CreatePasswordPage />} />
             </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </VaultToastProvider>
       </BrowserRouter>

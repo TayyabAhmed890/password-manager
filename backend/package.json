@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "src/index.js",
   "scripts": {
-    "test": "node tests/environment.test.js && node tests/loginAudience.test.js && node tests/encryption.test.js && node tests/vaultEncryptionFlow.test.js && node tests/csrfCookie.test.js && node tests/rateLimit.test.js && node tests/vaultCache.test.js && node tests/authMeAndMiddlewares.test.js && node tests/authAccountSecurity.test.js && node tests/adminDeletionTransaction.test.js && node tests/seedAdmin.test.js && node tests/dbConnection.test.js && node tests/errorHandler.test.js && node tests/modelSchema.test.js && node tests/passwordLength.test.js && node tests/recoveryCodeRotation.test.js && node tests/storeUpdate.test.js",
+    "test": "node tests/environment.test.js && node tests/loginAudience.test.js && node tests/encryption.test.js && node tests/vaultEncryptionFlow.test.js && node tests/csrfCookie.test.js && node tests/rateLimit.test.js && node tests/adminLoginRateLimit.test.js && node tests/adminUsersCache.test.js && node tests/vaultCache.test.js && node tests/authMeAndMiddlewares.test.js && node tests/authAccountSecurity.test.js && node tests/adminDeletionTransaction.test.js && node tests/seedAdmin.test.js && node tests/dbConnection.test.js && node tests/errorHandler.test.js && node tests/modelSchema.test.js && node tests/passwordLength.test.js && node tests/recoveryCodeRotation.test.js && node tests/storeUpdate.test.js",
     "start": "nodemon server.js"
   },
   "keywords": [],

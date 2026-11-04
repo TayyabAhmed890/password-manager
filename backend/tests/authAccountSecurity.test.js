@@ -9,6 +9,7 @@ const {
   rotateRecoveryCode,
   changePassword,
   deleteOwnAccount,
+  deleteAdminProfile,
 } = require("../src/controllers/auth.controllers");
 const { generateRecoveryCode } = require("../src/utils/recoveryCode");
 
@@ -198,6 +199,47 @@ async function runTests() {
     assert.strictEqual(endedSessions, 2);
     assert.strictEqual(context.getClearedCookies()[0].name, "token");
     console.log("✔ Self-deletion verifies the password and atomically removes vault data, key, and account.");
+  }
+
+  {
+    state = {
+      _id: adminId,
+      role: "admin",
+      passwordHash: await bcrypt.hash("AdminPassword123!", 4),
+    };
+    User.findOne = async (filter) =>
+      state && state._id === filter._id && state.role === filter.role ? { ...state } : null;
+    User.findOneAndDelete = async (filter) => {
+      if (
+        !state ||
+        state._id !== filter._id ||
+        state.role !== filter.role ||
+        state.passwordHash !== filter.passwordHash
+      ) {
+        return null;
+      }
+      const deleted = state;
+      state = null;
+      return deleted;
+    };
+
+    const incorrect = createContext({
+      body: { currentPassword: "wrong password" },
+      user: { id: adminId, role: "admin" },
+    });
+    await deleteAdminProfile(incorrect.req, incorrect.res);
+    assert.strictEqual(incorrect.getStatus(), 401);
+    assert(state);
+
+    const context = createContext({
+      body: { currentPassword: "AdminPassword123!" },
+      user: { id: adminId, role: "admin" },
+    });
+    await deleteAdminProfile(context.req, context.res);
+    assert.strictEqual(context.getStatus(), 200);
+    assert.strictEqual(state, null);
+    assert.strictEqual(context.getClearedCookies()[0].name, "token");
+    console.log("✔ Admin profile deletion verifies the password, deletes only the admin account, and clears the session.");
   }
 
   console.log("\nAll account security tests passed.");

@@ -8,6 +8,8 @@ const {
   getCachedVaultList,
   invalidateVaultCache,
 } = require("../utils/vaultCache");
+const { invalidateAdminUsersCache } = require("../utils/adminUsersCache");
+const { isValidEmail, normalizeEmail } = require("../utils/inputValidation");
 
 const {
   encrypt,
@@ -123,7 +125,7 @@ const createPassword = async (req, res) => {
       website,
       email,
       password,
-    } = req.body;
+    } = req.body || {};
 
     // ----------------------------------------------------------
     // Validate input types.
@@ -151,7 +153,7 @@ const createPassword = async (req, res) => {
     // can legitimately be part of a password.
     // ----------------------------------------------------------
     const cleanWebsite = website.trim();
-    const cleanEmail = email.trim().toLowerCase();
+    const cleanEmail = normalizeEmail(email);
 
     // ----------------------------------------------------------
     // Required-field validation.
@@ -167,6 +169,13 @@ const createPassword = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Email is required.",
+      });
+    }
+
+    if (cleanEmail.length > 254) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is too long.",
       });
     }
 
@@ -190,13 +199,6 @@ const createPassword = async (req, res) => {
       });
     }
 
-    if (cleanEmail.length > 254) {
-      return res.status(400).json({
-        success: false,
-        message: "Email is too long.",
-      });
-    }
-
     // 4096 characters is already far beyond normal password
     // length but still gives the user room for long passwords.
     if (password.length > 4096) {
@@ -209,10 +211,7 @@ const createPassword = async (req, res) => {
     // ----------------------------------------------------------
     // Basic email format validation.
     // ----------------------------------------------------------
-    const emailRegex =
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(cleanEmail)) {
+    if (!isValidEmail(cleanEmail)) {
       return res.status(400).json({
         success: false,
         message: "Please enter a valid email address.",
@@ -252,6 +251,7 @@ const createPassword = async (req, res) => {
       encryptionVersion: 1,
     });
     await invalidateVaultCache(userId);
+    await invalidateAdminUsersCache();
     await cachePassword(userId, String(savedPassword._id), {
       encryptedPassword: savedPassword.encryptedPassword,
       iv: savedPassword.iv,
@@ -475,7 +475,7 @@ const updatePassword = async (req, res) => {
       });
     }
 
-    const { website, email, password } = req.body;
+    const { website, email, password } = req.body || {};
 
     // ----------------------------------------------------------
     // At least one field must be provided for update
@@ -547,7 +547,7 @@ const updatePassword = async (req, res) => {
         });
       }
 
-      const cleanEmail = email.trim().toLowerCase();
+      const cleanEmail = normalizeEmail(email);
 
       if (!cleanEmail) {
         return res.status(400).json({
@@ -556,8 +556,14 @@ const updatePassword = async (req, res) => {
         });
       }
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (cleanEmail.length > 254 || !emailRegex.test(cleanEmail)) {
+      if (cleanEmail.length > 254) {
+        return res.status(400).json({
+          success: false,
+          message: "Email is too long.",
+        });
+      }
+
+      if (!isValidEmail(cleanEmail)) {
         return res.status(400).json({
           success: false,
           message: "Please provide a valid email address.",
@@ -699,6 +705,7 @@ const deletePassword = async (req, res) => {
     }
 
     await invalidateVaultCache(userId, id);
+    await invalidateAdminUsersCache();
 
     return res.status(200).json({
       success: true,

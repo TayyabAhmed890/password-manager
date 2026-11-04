@@ -21,7 +21,12 @@ const getClientOrigins = (env = process.env) => {
     });
 
   if (env.NODE_ENV !== "production") {
-    configuredOrigins.push("http://localhost:5173", "http://localhost:3000");
+    configuredOrigins.push(
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "http://localhost:5174",
+      "http://127.0.0.1:5174"
+    );
   }
 
   return [...new Set(configuredOrigins)];

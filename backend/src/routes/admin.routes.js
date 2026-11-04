@@ -12,7 +12,7 @@ const {
 
 const router = express.Router();
 
-// Both routes require authentication and admin permission.
+// These routes require authentication and admin permission.
 router.get("/users", protect, requireAdmin, csrfProtection, getAllUsers);
 
 router.delete(

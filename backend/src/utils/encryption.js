@@ -73,11 +73,23 @@ function decrypt(encrypted, iv, authTag, key) {
 
 function wrapDek(dek) {
   validateKey(dek);
-  return encrypt(dek.toString("hex"), getMasterKey());
+  const masterKey = getMasterKey();
+  try {
+    return encrypt(dek.toString("hex"), masterKey);
+  } finally {
+    masterKey.fill(0);
+  }
 }
 
 function unwrapDek(wrappedDek, iv, authTag) {
-  const dekHex = decrypt(wrappedDek, iv, authTag, getMasterKey());
+  const masterKey = getMasterKey();
+  let dekHex;
+
+  try {
+    dekHex = decrypt(wrappedDek, iv, authTag, masterKey);
+  } finally {
+    masterKey.fill(0);
+  }
 
   if (!/^[a-fA-F0-9]{64}$/.test(dekHex)) {
     throw new Error("Wrapped vault key has an invalid format");

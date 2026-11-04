@@ -210,14 +210,23 @@ async function runTests() {
   // Test 8: Admin getAllUsers pagination validation
   // -------------------------------------------------------------
   {
-    const ctxInvalidPage = createMockContext({ query: { page: "-1", limit: "10" } });
-    await getAllUsers(ctxInvalidPage.req, ctxInvalidPage.res);
-    assert.strictEqual(ctxInvalidPage.getStatus(), 400);
-    assert.strictEqual(
-      ctxInvalidPage.getJson()?.message,
-      "Page must be positive and limit must be between 1 and 100."
-    );
-    console.log("✔ Test 8 Passed: getAllUsers enforces pagination boundaries (1 to 100).");
+    const invalidPages = [
+      { page: "-1", limit: "10" },
+      { page: "9007199254740991", limit: "100" },
+      { page: "9007199254740992", limit: "10" },
+    ];
+
+    for (const query of invalidPages) {
+      const context = createMockContext({ query });
+      await getAllUsers(context.req, context.res);
+      assert.strictEqual(context.getStatus(), 400);
+      assert.strictEqual(
+        context.getJson()?.message,
+        "Page must be positive and limit must be between 1 and 100."
+      );
+    }
+
+    console.log("✔ Test 8 Passed: getAllUsers rejects invalid and unsafe pagination offsets.");
     passedCount++;
   }
 

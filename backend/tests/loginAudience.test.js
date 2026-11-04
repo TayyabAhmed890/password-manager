@@ -27,6 +27,26 @@ assert.strictEqual(
   "admin"
 );
 assert.strictEqual(
+  getLoginAudience(request({ origin: "http://localhost:5174" }), {
+    NODE_ENV: "development",
+  }),
+  "admin"
+);
+assert.strictEqual(
+  getLoginAudience(request({ origin: "http://127.0.0.1:5174" }), {
+    NODE_ENV: "development",
+  }),
+  "admin"
+);
+assert.strictEqual(
+  getLoginAudience(request({ origin: "http://localhost:5174" }), {
+    NODE_ENV: "production",
+    CLIENT_URL: "https://app.example.com",
+    ADMIN_URL: "https://admin.example.com",
+  }),
+  null
+);
+assert.strictEqual(
   getLoginAudience(request({ referer: "https://admin.example.com/login" }), {
     CLIENT_URL: "https://app.example.com",
     ADMIN_URL: "https://admin.example.com",

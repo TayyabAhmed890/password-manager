@@ -5,18 +5,22 @@ const {
   login,
   logout,
   forgotPassword,
+  forgotAdminPassword,
   getCurrentUser,
   rotateRecoveryCode,
   changePassword,
   deleteOwnAccount,
+  deleteAdminProfile,
 } = require("../controllers/auth.controllers");
 const protect = require("../middlewares/auth.middleware");
 const requireUser = require("../middlewares/user.middleware");
+const requireAdmin = require("../middlewares/admin.middleware");
 const {
   createRateLimit,
   normalizeEmailIdentifier,
 } = require("../middlewares/rateLimit.middleware");
 const csrfProtection = require("../middlewares/csrf.middleware");
+const adminLoginRateLimit = require("../middlewares/adminLoginRateLimit.middleware");
 
 const router = express.Router();
 
@@ -63,6 +67,7 @@ router.post("/register", csrfProtection, registerRateLimit, register);
 router.post(
   "/login",
   csrfProtection,
+  adminLoginRateLimit,
   loginRateLimit,
   loginAccountRateLimit,
   login
@@ -85,6 +90,22 @@ router.post(
   accountSecurityRateLimit,
   changePassword
 );
+router.post(
+  "/admin/change-password",
+  protect,
+  requireAdmin,
+  csrfProtection,
+  accountSecurityRateLimit,
+  changePassword
+);
+router.delete(
+  "/admin/profile",
+  protect,
+  requireAdmin,
+  csrfProtection,
+  accountSecurityRateLimit,
+  deleteAdminProfile
+);
 router.delete(
   "/account",
   protect,
@@ -100,6 +121,13 @@ router.post(
   recoveryRateLimit,
   recoveryAccountRateLimit,
   forgotPassword
+);
+router.post(
+  "/admin/forgot-password",
+  csrfProtection,
+  recoveryRateLimit,
+  recoveryAccountRateLimit,
+  forgotAdminPassword
 );
 
 module.exports = router;

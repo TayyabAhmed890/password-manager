@@ -2,7 +2,7 @@ const assert = require("assert");
 const mongoose = require("mongoose");
 const User = require("../src/models/user.model");
 const VaultKey = require("../src/models/vaultKey.model");
-const { register, forgotPassword } = require("../src/controllers/auth.controllers");
+const { register, login, forgotPassword } = require("../src/controllers/auth.controllers");
 const { unwrapDek } = require("../src/utils/encryption");
 
 // Disable Mongoose buffering so un-stubbed DB operations fail immediately without timeout
@@ -115,6 +115,16 @@ async function runTests() {
       32
     );
     console.log("✔ Test 1 Passed: Normal password (18 bytes) accepted by byte-length validator.");
+    passedCount++;
+  }
+
+  {
+    const ctx = createMockContext({});
+    ctx.req.body = undefined;
+    await register(ctx.req, ctx.res);
+    assert.strictEqual(ctx.getStatus(), 400);
+    assert.strictEqual(ctx.getJson()?.success, false);
+    console.log("✔ Registration treats a missing request body as invalid input.");
     passedCount++;
   }
 
@@ -303,6 +313,19 @@ async function runTests() {
     assert.strictEqual(ctx.getCookies().length, 0);
     assert.strictEqual(endSessionCount, previousEndSessionCount + 1);
     console.log("✔ Test 11 Passed: Failed vault-key write does not return success and closes the transaction session.");
+    passedCount++;
+  }
+
+  // Login must reject values bcrypt would silently truncate.
+  {
+    const ctx = createMockContext({
+      email: "test@example.com",
+      password: "a".repeat(73),
+    });
+    await login(ctx.req, ctx.res);
+    assert.strictEqual(ctx.getStatus(), 400);
+    assert.strictEqual(ctx.getJson()?.message, "Password cannot exceed 72 bytes.");
+    console.log("✔ Login rejects passwords beyond bcrypt's 72-byte limit.");
     passedCount++;
   }
 

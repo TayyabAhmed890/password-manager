@@ -61,6 +61,16 @@ async function runTests() {
     assert.strictEqual(nextCalled, true);
     console.log("✔ Test 1a Passed: Configured ADMIN_URL origin is accepted.");
 
+    nextCalled = false;
+    const localAdminOrigin = createContext({
+      origin: "http://localhost:5174",
+    });
+    csrfProtection(localAdminOrigin.req, localAdminOrigin.res, () => {
+      nextCalled = true;
+    });
+    assert.strictEqual(nextCalled, true);
+    console.log("✔ Test 1b Passed: Local Vite admin origin is accepted in development.");
+
     const disallowedOrigin = createContext({
       origin: "https://attacker.example",
     });
@@ -105,6 +115,15 @@ async function runTests() {
     console.log("✔ Test 6 Passed: Requests without a verifiable origin are rejected.");
 
     process.env.NODE_ENV = "production";
+    const productionAdminOrigin = createContext({
+      origin: "http://localhost:5174",
+    });
+    csrfProtection(productionAdminOrigin.req, productionAdminOrigin.res, () => {
+      assert.fail("Unconfigured local admin origin must not be trusted in production.");
+    });
+    assert.strictEqual(productionAdminOrigin.getStatus(), 403);
+    console.log("✔ Test 1c Passed: Local admin origin is not implicitly allowed in production.");
+
     const setOptions = getAuthCookieOptions();
     const clearOptions = getAuthCookieOptions({ clear: true });
     assert.strictEqual(setOptions.httpOnly, true);

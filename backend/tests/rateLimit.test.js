@@ -72,6 +72,7 @@ function createContext(req) {
 async function runTests() {
   const previousUrl = process.env.UPSTASH_REDIS_REST_URL;
   const previousToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const previousNodeEnv = process.env.NODE_ENV;
   const previousConsoleError = console.error;
 
   process.env.UPSTASH_REDIS_REST_URL = "https://unit-test.upstash.io";
@@ -133,6 +134,7 @@ async function runTests() {
       limit: 1,
       window: "1 m",
     });
+    process.env.NODE_ENV = "production";
     shouldThrow = true;
     const outageContext = createContext({
       ip: "192.0.2.3",
@@ -151,28 +153,57 @@ async function runTests() {
     console.log("✔ Test 3 Passed: Upstash failures return a generic 503 without bypassing limits.");
 
     shouldThrow = false;
+    process.env.NODE_ENV = "development";
     delete process.env.UPSTASH_REDIS_REST_URL;
     const missingConfigLimiter = createRateLimit({
-      name: "test-missing-config",
+      name: "test-local-fallback",
       limit: 1,
       window: "1 m",
     });
-    const missingConfigContext = createContext({
+    const localFirstContext = createContext({
       ip: "192.0.2.4",
       socket: { remoteAddress: "192.0.2.4" },
     });
+    let localNextCalled = false;
+    await missingConfigLimiter(localFirstContext.req, localFirstContext.res, () => {
+      localNextCalled = true;
+    });
+    assert.strictEqual(localNextCalled, true);
 
+    const localBlockedContext = createContext({
+      ip: "192.0.2.4",
+      socket: { remoteAddress: "192.0.2.4" },
+    });
     await missingConfigLimiter(
-      missingConfigContext.req,
-      missingConfigContext.res,
-      () => assert.fail("Missing limiter configuration must fail closed.")
+      localBlockedContext.req,
+      localBlockedContext.res,
+      () => assert.fail("Local limit must reject the second request.")
     );
+    assert.strictEqual(localBlockedContext.getStatus(), 429);
+    console.log("✔ Test 4 Passed: Development uses a local limiter when Upstash is unavailable.");
 
-    assert.strictEqual(missingConfigContext.getStatus(), 503);
-    console.log("✔ Test 4 Passed: Missing Upstash configuration fails closed.");
+    process.env.NODE_ENV = "production";
+    const productionMissingLimiter = createRateLimit({
+      name: "test-production-missing-config",
+      limit: 1,
+      window: "1 m",
+    });
+    const productionMissingContext = createContext({
+      ip: "192.0.2.5",
+      socket: { remoteAddress: "192.0.2.5" },
+    });
+    await productionMissingLimiter(
+      productionMissingContext.req,
+      productionMissingContext.res,
+      () => assert.fail("Production must not bypass the distributed limiter.")
+    );
+    assert.strictEqual(productionMissingContext.getStatus(), 503);
+    console.log("✔ Test 5 Passed: Production still fails closed without Upstash.");
   } finally {
     console.error = previousConsoleError;
 
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
     if (previousUrl === undefined) {
       delete process.env.UPSTASH_REDIS_REST_URL;
     } else {

@@ -6,7 +6,6 @@ const passwordSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "user",
       required: true,
-      index: true,
     },
 
     website: {
@@ -49,7 +48,7 @@ const passwordSchema = new mongoose.Schema(
   }
 );
 
-// User ke passwords fetch karne mein useful
+// This index also supports userId-only queries through its leading field.
 passwordSchema.index({
   userId: 1,
   createdAt: -1,

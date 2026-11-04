@@ -3,6 +3,12 @@ const mongoose = require("mongoose");
 const User = require("../models/user.model");
 const Password = require("../models/store.model");
 const VaultKey = require("../models/vaultKey.model");
+const {
+  getAdminUsersCacheKey,
+  invalidateAdminUsersCache,
+  readAdminUsersCache,
+  writeAdminUsersCache,
+} = require("../utils/adminUsersCache");
 
 // GET /api/admin/users
 // Return a paginated list of users with each user's vault count.
@@ -13,11 +19,12 @@ const getAllUsers = async (req, res) => {
     const limit = Number(req.query.limit ?? 10);
 
     if (
-      !Number.isInteger(page) ||
-      !Number.isInteger(limit) ||
+      !Number.isSafeInteger(page) ||
+      !Number.isSafeInteger(limit) ||
       page < 1 ||
       limit < 1 ||
-      limit > 100
+      limit > 100 ||
+      !Number.isSafeInteger((page - 1) * limit)
     ) {
       return res.status(400).json({
         success: false,
@@ -27,6 +34,12 @@ const getAllUsers = async (req, res) => {
     }
 
     const skip = (page - 1) * limit;
+    const cacheKey = await getAdminUsersCacheKey(page, limit);
+    const cachedResponse = await readAdminUsersCache(cacheKey);
+    if (cachedResponse) {
+      res.set("Cache-Control", "no-store");
+      return res.status(200).json(cachedResponse);
+    }
 
     // Only return fields needed by the admin dashboard.
     // Never return passwordHash or recoveryCodeHash.
@@ -75,7 +88,7 @@ const getAllUsers = async (req, res) => {
       passwordCount: countMap.get(user._id.toString()) ?? 0,
     }));
 
-    return res.status(200).json({
+    const response = {
       success: true,
       data,
       pagination: {
@@ -84,7 +97,11 @@ const getAllUsers = async (req, res) => {
         totalUsers,
         totalPages: Math.ceil(totalUsers / limit),
       },
-    });
+    };
+
+    await writeAdminUsersCache(cacheKey, response);
+    res.set("Cache-Control", "no-store");
+    return res.status(200).json(response);
   } catch (error) {
     console.error("Get all users error:", error);
 
@@ -94,7 +111,6 @@ const getAllUsers = async (req, res) => {
     });
   }
 };
-
 
 // DELETE /api/admin/users/:id
 // Delete a normal user's account and all their vault records.
@@ -149,6 +165,7 @@ const deleteUser = async (req, res) => {
         }).session(session);
       });
 
+      await invalidateAdminUsersCache();
       return res.status(200).json({
         success: true,
         message: "User and their saved password records were deleted.",
