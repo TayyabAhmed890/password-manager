@@ -85,9 +85,11 @@ const ForgotPasswordPage = () => {
         error,
         'We could not reset your password. Check your details and try again.',
         {
-          400: 'Check the information you entered and try again.',
+          400: forgotPasswordContent.resetDetailsInvalid,
           401: forgotPasswordContent.invalidRecoveryCode,
-          409: 'This recovery code may have already been used. Try your latest code.',
+          409: forgotPasswordContent.recoveryCodeConflict,
+          500: forgotPasswordContent.resetServerError,
+          503: 'Password reset is temporarily unavailable. Please try again shortly.',
         }
       ))
     } finally {

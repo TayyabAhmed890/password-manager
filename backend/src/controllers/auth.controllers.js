@@ -584,7 +584,7 @@ const forgotPassword = async (req, res, requiredRole) => {
     if (!updatedUser) {
       return res.status(409).json({
         success: false,
-        message: "Password reset conflicted or recovery code already consumed.",
+        message: "This recovery code was already used. Enter your latest recovery code and try again.",
       });
     }
 

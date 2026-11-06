@@ -44,19 +44,19 @@ const loginAccountRateLimit = createRateLimit({
 const recoveryRateLimit = createRateLimit({
   name: "recovery",
   limit: 5,
-  window: "1 h",
+  window: "5 m",
 });
 const recoveryAccountRateLimit = createRateLimit({
   name: "recovery-account",
   limit: 3,
-  window: "1 h",
+  window: "5 m",
   identifier: (req) =>
     `${req.ip || req.socket.remoteAddress || "unknown"}:${normalizeEmailIdentifier(req)}`,
 });
 const accountSecurityRateLimit = createRateLimit({
   name: "account-security",
   limit: 5,
-  window: "1 h",
+  window: "5 m",
   identifier: (req) => req.user.id,
 });
 
@@ -120,7 +120,7 @@ router.post(
   csrfProtection,
   recoveryRateLimit,
   recoveryAccountRateLimit,
-  forgotPassword
+  (req, res) => forgotPassword(req, res)
 );
 router.post(
   "/admin/forgot-password",

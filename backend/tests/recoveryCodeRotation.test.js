@@ -105,6 +105,34 @@ async function runTests() {
     passedCount++;
   }
 
+  {
+    const ctx = createMockContext({
+      email: "user@example.com",
+      recoveryCode: "not-a-recovery-code",
+      newPassword: "NewValidPassword123!",
+    });
+
+    await forgotPassword(ctx.req, ctx.res);
+    assert.strictEqual(ctx.getStatus(), 401);
+    assert.strictEqual(ctx.getJson()?.message, "Invalid email or recovery code.");
+    console.log("✔ Malformed recovery codes use the same generic response.");
+    passedCount++;
+  }
+
+  {
+    const ctx = createMockContext({
+      email: "unknown@example.com",
+      recoveryCode: "not-a-recovery-code",
+      newPassword: "NewValidPassword123!",
+    });
+
+    await forgotPassword(ctx.req, ctx.res);
+    assert.strictEqual(ctx.getStatus(), 401);
+    assert.strictEqual(ctx.getJson()?.message, "Invalid email or recovery code.");
+    console.log("✔ Unknown email and invalid code do not reveal account existence.");
+    passedCount++;
+  }
+
   // -------------------------------------------------------------
   // Test 2: Successful reset rotates recovery code and returns new code
   // -------------------------------------------------------------

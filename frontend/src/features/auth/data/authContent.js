@@ -65,7 +65,14 @@ export const forgotPasswordContent = {
   loginAction: 'Back to log in',
   passwordMismatch: 'The passwords do not match.',
   passwordTooLong: 'That password is too long. Please choose a shorter one.',
-  invalidRecoveryCode: 'The email or recovery code is incorrect.',
+  invalidRecoveryCode:
+    'We could not verify that email and recovery code together. Check the email and enter the latest recovery code.',
+  resetDetailsInvalid:
+    'Some information is missing or invalid. Check the email, recovery code, and new password fields.',
+  recoveryCodeConflict:
+    'This recovery code was already used. Enter your latest recovery code and try again.',
+  resetServerError:
+    'We could not complete the password reset because of a server issue. Please try again later.',
   recoverySuccessTitle: 'Password updated',
   recoverySuccessDescription:
     'Save this new recovery code. Your previous code can no longer be used.',
