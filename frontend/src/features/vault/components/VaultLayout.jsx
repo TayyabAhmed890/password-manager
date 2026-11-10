@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ChevronDown,
   CirclePlus,
@@ -8,7 +8,9 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  Moon,
   Settings,
+  Sun,
   Trash2,
   X,
   UserRound,
@@ -32,11 +34,18 @@ const VaultLayout = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
+  const [isDarkMode, setIsDarkMode] = useState(
+    () => window.localStorage.getItem('keynest-vault-theme') === 'dark'
+  )
   const [settingsMode, setSettingsMode] = useState('')
   const [logoutError, setLogoutError] = useState('')
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const displayName = getDisplayName(user)
   const initials = displayName.slice(0, 1).toUpperCase()
+
+  useEffect(() => {
+    window.localStorage.setItem('keynest-vault-theme', isDarkMode ? 'dark' : 'light')
+  }, [isDarkMode])
 
   const handleLogout = async () => {
     if (isLoggingOut) return
@@ -91,7 +100,10 @@ const VaultLayout = () => {
   )
 
   return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-950">
+    <div
+      className="vault-app min-h-screen bg-neutral-50 text-neutral-950"
+      data-theme={isDarkMode ? 'dark' : 'light'}
+    >
       <aside className={`fixed inset-y-0 left-0 z-20 hidden flex-col border-r border-neutral-200 bg-white py-6 transition-[width,padding] duration-200 lg:flex ${
         isSidebarCollapsed ? 'w-20 px-3' : 'w-64 px-5'
       }`}>
@@ -168,7 +180,20 @@ const VaultLayout = () => {
               </p>
             </div>
 
-            <div className="relative">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsDarkMode((darkMode) => !darkMode)}
+                aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                aria-pressed={isDarkMode}
+                title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                className="flex size-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-700 transition hover:bg-neutral-50 hover:text-neutral-950"
+              >
+                {isDarkMode
+                  ? <Sun size={17} aria-hidden="true" />
+                  : <Moon size={17} aria-hidden="true" />}
+              </button>
+              <div className="relative">
               <button
                 type="button"
                 onClick={() => setIsProfileOpen((open) => !open)}
@@ -224,6 +249,7 @@ const VaultLayout = () => {
                   </button>
                 </div>
               )}
+              </div>
             </div>
           </div>
           <div

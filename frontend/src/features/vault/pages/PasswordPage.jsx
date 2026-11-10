@@ -389,7 +389,7 @@ const PasswordPage = () => {
                     <LockKeyhole size={17} aria-hidden="true" />
                   </span>
                   <span
-                    className="relative hidden size-10 shrink-0 items-center justify-center self-start rounded-xl border border-indigo-100 bg-linear-to-br from-indigo-50 via-white to-sky-100 text-lg font-semibold text-indigo-800 shadow-sm sm:flex"
+                    className="vault-site-icon relative hidden size-10 shrink-0 items-center justify-center self-start rounded-xl border border-indigo-100 bg-linear-to-br from-indigo-50 via-white to-sky-100 text-lg font-semibold text-indigo-800 shadow-sm sm:flex"
                     aria-hidden="true"
                   >
                     {entry.website?.trim()?.charAt(0)?.toUpperCase() || '?'}
