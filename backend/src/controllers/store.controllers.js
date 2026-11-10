@@ -10,6 +10,12 @@ const {
 } = require("../utils/vaultCache");
 const { invalidateAdminUsersCache } = require("../utils/adminUsersCache");
 const { isValidEmail, normalizeEmail } = require("../utils/inputValidation");
+const {
+  MAX_VAULT_ENTRIES,
+  ensureVaultEntryCount,
+  reserveVaultEntrySlot,
+  releaseVaultEntrySlot,
+} = require("../utils/vaultEntryLimit");
 
 const {
   encrypt,
@@ -36,6 +42,22 @@ const getPasswords = async (req, res) => {
         message: "Please login first.",
       });
     }
+
+    const rawSearch = req.query?.search;
+    if (rawSearch !== undefined && typeof rawSearch !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Search must be a single text value.",
+      });
+    }
+
+    if (rawSearch && rawSearch.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Search must be 100 characters or fewer.",
+      });
+    }
+    const search = rawSearch?.trim() || "";
 
     // ----------------------------------------------------------
     // Fetch only the information needed for the password list.
@@ -73,22 +95,37 @@ const getPasswords = async (req, res) => {
 
     console.info(`[vault-cache] GET /api/store source=${cacheHit ? "Upstash" : "MongoDB"}`);
 
+    const currentCount = passwords.length;
+    const normalizedSearch = search.toLowerCase();
+    const filteredPasswords = normalizedSearch
+      ? passwords.filter((entry) =>
+          (typeof entry.website === "string" &&
+            entry.website.toLowerCase().includes(normalizedSearch)) ||
+          (typeof entry.email === "string" &&
+            entry.email.toLowerCase().includes(normalizedSearch))
+        )
+      : passwords;
+
     // ----------------------------------------------------------
     // Empty vault is not an error.
     // Return 200 with an empty array.
     // ----------------------------------------------------------
-    if (passwords.length === 0) {
+    if (currentCount === 0) {
       return res.status(200).json({
         success: true,
         message: "You haven't saved any passwords yet.",
         data: [],
+        vault: { currentCount, maxEntries: MAX_VAULT_ENTRIES },
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Passwords fetched successfully.",
-      data: passwords,
+      message: filteredPasswords.length
+        ? "Passwords fetched successfully."
+        : "No saved passwords match your search.",
+      data: filteredPasswords,
+      vault: { currentCount, maxEntries: MAX_VAULT_ENTRIES },
     });
 
   } catch (error) {
@@ -227,29 +264,42 @@ const createPassword = async (req, res) => {
     //
     // We do NOT hash it.
     // ----------------------------------------------------------
-    const dek = await getUserVaultKey(userId);
-    let encryptedPassword;
-
+    let session;
+    let savedPassword;
     try {
-      encryptedPassword = encrypt(password, dek);
+      session = await mongoose.startSession();
+      await session.withTransaction(async () => {
+        await reserveVaultEntrySlot(userId, session);
+        const dek = await getUserVaultKey(userId);
+        let encryptedPassword;
+
+        try {
+          encryptedPassword = encrypt(password, dek);
+        } finally {
+          dek.fill(0);
+        }
+
+        [savedPassword] = await Password.create(
+          [{
+            userId,
+            website: cleanWebsite,
+            email: cleanEmail,
+            encryptedPassword: encryptedPassword.encrypted,
+            iv: encryptedPassword.iv,
+            authTag: encryptedPassword.authTag,
+            encryptionVersion: 1,
+          }],
+          { session }
+        );
+      });
     } finally {
-      dek.fill(0);
+      if (session) await session.endSession();
     }
 
-    // ----------------------------------------------------------
-    // Store only the encrypted password and its decryption
-    // metadata in MongoDB.
-    // ----------------------------------------------------------
-    const savedPassword = await Password.create({
-      userId,
-      website: cleanWebsite,
-      email: cleanEmail,
+    if (!savedPassword) {
+      throw new Error("Vault entry transaction did not complete.");
+    }
 
-      encryptedPassword: encryptedPassword.encrypted,
-      iv: encryptedPassword.iv,
-      authTag: encryptedPassword.authTag,
-      encryptionVersion: 1,
-    });
     await invalidateVaultCache(userId);
     await invalidateAdminUsersCache();
     await cachePassword(userId, String(savedPassword._id), {
@@ -276,6 +326,14 @@ const createPassword = async (req, res) => {
     });
 
   } catch (error) {
+    if (error.code === "VAULT_LIMIT_REACHED") {
+      return res.status(409).json({
+        success: false,
+        code: error.code,
+        message: "Your vault is full. Delete a saved password before adding another.",
+      });
+    }
+
     console.error("Create password error:", error);
 
     // Mongoose validation error.
@@ -684,11 +742,23 @@ const deletePassword = async (req, res) => {
     //
     // This prevents cross-user deletion.
     // ----------------------------------------------------------
-    const deletedPassword =
-      await Password.findOneAndDelete({
-        _id: id,
-        userId,
+    let deletedPassword;
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        await ensureVaultEntryCount(userId, session);
+        deletedPassword = await Password.findOneAndDelete({
+          _id: id,
+          userId,
+        }).session(session);
+
+        if (deletedPassword) {
+          await releaseVaultEntrySlot(userId, session);
+        }
       });
+    } finally {
+      await session.endSession();
+    }
 
     // ----------------------------------------------------------
     // No matching record.

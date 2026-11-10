@@ -17,6 +17,10 @@ async function runTests() {
   assert(namePath, "User name path must exist");
   assert.strictEqual(namePath.options.maxlength, 80);
   assert.strictEqual(namePath.options.default, "");
+  const vaultEntryCountPath = User.schema.path("vaultEntryCount");
+  assert(vaultEntryCountPath, "User vault entry counter must exist");
+  assert.strictEqual(vaultEntryCountPath.options.default, 0);
+  assert.strictEqual(vaultEntryCountPath.options.min, 0);
   console.log("✔ User schema supports a bounded display name and remains compatible with existing accounts.");
   passedCount++;
 

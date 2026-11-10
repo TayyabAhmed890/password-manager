@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowLeft, Globe2, LoaderCircle, Mail } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import PasswordField from '../../auth/components/PasswordField'
 import { AuthApiError, getAuthErrorMessage } from '../../auth/api/authApi'
 import { isValidEmail } from '../../auth/utils/authValidation'
-import { createVaultEntry } from '../api/vaultApi'
+import { createVaultEntry, getVaultEntries } from '../api/vaultApi'
 import { useAuth } from '../../../app/useAuth'
 import { useVaultToast } from '../components/useVaultToast'
 
@@ -18,6 +18,35 @@ const CreatePasswordPage = () => {
   const [fieldErrors, setFieldErrors] = useState({})
   const [errorMessage, setErrorMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isVaultUsageLoading, setIsVaultUsageLoading] = useState(true)
+  const [vaultCount, setVaultCount] = useState(null)
+  const [maxEntries, setMaxEntries] = useState(10)
+
+  useEffect(() => {
+    let active = true
+    getVaultEntries()
+      .then((result) => {
+        if (!active) return
+        setVaultCount(result.vault?.currentCount ?? result.data.length)
+        setMaxEntries(result.vault?.maxEntries ?? 10)
+      })
+      .catch((error) => {
+        if (!active) return
+        if (error instanceof AuthApiError && error.status === 401) {
+          clearAuthenticatedUser()
+          navigate('/login', { replace: true })
+          return
+        }
+        setErrorMessage('We could not check your vault limit. It will still be enforced when you save.')
+      })
+      .finally(() => {
+        if (active) setIsVaultUsageLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [clearAuthenticatedUser, navigate])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -42,6 +71,11 @@ const CreatePasswordPage = () => {
     setErrorMessage('')
     if (Object.keys(errors).length) return
 
+    if (vaultCount !== null && vaultCount >= maxEntries) {
+      setErrorMessage('Your vault is full. Delete a saved password before adding another.')
+      return
+    }
+
     setIsSubmitting(true)
     try {
       await createVaultEntry({
@@ -57,6 +91,14 @@ const CreatePasswordPage = () => {
       if (error instanceof AuthApiError && error.status === 401) {
         clearAuthenticatedUser()
         navigate('/login', { replace: true })
+        return
+      }
+
+      if (error instanceof AuthApiError && error.code === 'VAULT_LIMIT_REACHED') {
+        setVaultCount(maxEntries)
+        const message = 'Your vault is full. Delete a saved password before adding another.'
+        setErrorMessage(message)
+        showToast(message, 'error')
         return
       }
 
@@ -97,6 +139,30 @@ const CreatePasswordPage = () => {
         onSubmit={handleSubmit}
         noValidate
       >
+        {isVaultUsageLoading ? (
+          <div
+            className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3"
+            role="status"
+            aria-label="Loading vault usage"
+          >
+            <span className="sr-only">Loading vault usage</span>
+            <span aria-hidden="true" className="block h-4 w-36 animate-pulse rounded bg-neutral-200" />
+          </div>
+        ) : vaultCount !== null ? (
+          <p className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
+            Vault usage: <span className="font-semibold">{vaultCount}/{maxEntries}</span>
+          </p>
+        ) : null}
+
+        {vaultCount !== null && vaultCount >= maxEntries && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-900">
+            Your vault is full. Delete a saved password before adding another.
+            <Link to="/passwords" className="ml-1 font-semibold underline underline-offset-2">
+              Go to your vault
+            </Link>
+          </div>
+        )}
+
         <div>
           <label htmlFor="vault-website" className="mb-2 block text-sm font-medium text-neutral-800">
             Website or service
@@ -187,11 +253,11 @@ const CreatePasswordPage = () => {
           </Link>
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || (vaultCount !== null && vaultCount >= maxEntries)}
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-neutral-950 px-5 text-sm font-semibold text-white hover:bg-neutral-700 disabled:opacity-60"
           >
             {isSubmitting && <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />}
-            {isSubmitting ? 'Saving password...' : 'Save password'}
+            {isSubmitting ? 'Saving password...' : vaultCount !== null && vaultCount >= maxEntries ? 'Vault full' : 'Save password'}
           </button>
         </div>
         {isSubmitting && <p className="sr-only" role="status">Saving this password</p>}

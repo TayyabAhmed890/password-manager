@@ -1,9 +1,10 @@
 export class AuthApiError extends Error {
-  constructor({ status = null, retryAfterSeconds = null } = {}) {
+  constructor({ status = null, retryAfterSeconds = null, code = null } = {}) {
     super('Authentication request failed.')
     this.name = 'AuthApiError'
     this.status = status
     this.retryAfterSeconds = retryAfterSeconds
+    this.code = code
   }
 }
 
@@ -57,6 +58,7 @@ export const requestApi = async (path, { method = 'GET', payload } = {}) => {
       retryAfterSeconds: getRetryAfterSeconds(
         response.headers.get('Retry-After')
       ),
+      code: result?.code === 'VAULT_LIMIT_REACHED' ? result.code : null,
     })
   }
 

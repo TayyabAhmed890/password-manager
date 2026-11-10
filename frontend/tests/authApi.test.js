@@ -119,6 +119,7 @@ test('session, account, and vault operations use their protected API routes', as
     })
     await deleteAccount({ currentPassword: 'current' })
     await getVaultEntries()
+    await getVaultEntries('example.com & user')
     await createVaultEntry({
       website: 'example.com',
       email: 'user@example.com',
@@ -134,6 +135,7 @@ test('session, account, and vault operations use their protected API routes', as
       ['/api/auth/change-password', 'POST'],
       ['/api/auth/account', 'DELETE'],
       ['/api/store', 'GET'],
+      ['/api/store?search=example.com%20%26%20user', 'GET'],
       ['/api/store/create', 'POST'],
       ['/api/store/entry-123/password', 'GET'],
       ['/api/store/entry-123', 'PATCH'],
@@ -146,9 +148,31 @@ test('session, account, and vault operations use their protected API routes', as
     assert.deepEqual(JSON.parse(requests[3].options.body), {
       currentPassword: 'current',
     })
-    assert.deepEqual(JSON.parse(requests[7].options.body), {
+    assert.deepEqual(JSON.parse(requests[8].options.body), {
       password: 'UpdatedVault!Pass',
     })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('vault-limit errors expose only the known machine-readable code', async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async () => createResponse({
+    status: 409,
+    body: { success: false, code: 'VAULT_LIMIT_REACHED', message: 'private detail' },
+  })
+
+  try {
+    await assert.rejects(
+      createVaultEntry({ website: 'example.com', email: 'user@example.com', password: 'secret' }),
+      (error) => {
+        assert.ok(error instanceof AuthApiError)
+        assert.equal(error.code, 'VAULT_LIMIT_REACHED')
+        assert.equal(error.message, 'Authentication request failed.')
+        return true
+      }
+    )
   } finally {
     globalThis.fetch = originalFetch
   }

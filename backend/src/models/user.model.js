@@ -36,6 +36,11 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    vaultEntryCount: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
   },
   {
     timestamps: true,

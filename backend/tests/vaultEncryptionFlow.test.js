@@ -1,6 +1,7 @@
 const assert = require("assert");
 const crypto = require("crypto");
 const mongoose = require("mongoose");
+const User = require("../src/models/user.model");
 const Password = require("../src/models/store.model");
 const VaultKey = require("../src/models/vaultKey.model");
 const { wrapDek } = require("../src/utils/encryption");
@@ -43,6 +44,7 @@ async function runTests() {
   const dek = crypto.randomBytes(32);
   const wrapped = wrapDek(dek);
   let savedRecord;
+  let vaultCount = 0;
   let queriedKeyUserId;
   let queriedPasswordFilter;
 
@@ -62,13 +64,36 @@ async function runTests() {
     };
   };
 
-  Password.create = async (data) => {
+  mongoose.startSession = async () => ({
+    withTransaction: async (callback) => callback(),
+    endSession: async () => {},
+  });
+  User.findById = () => ({
+    select() {
+      return {
+        session() {
+          return {
+            lean: async () => ({ vaultEntryCount: vaultCount }),
+          };
+        },
+      };
+    },
+  });
+  User.updateOne = async (filter, update) => {
+    if (filter.vaultEntryCount?.$lt !== undefined && vaultCount >= filter.vaultEntryCount.$lt) {
+      return { modifiedCount: 0 };
+    }
+    vaultCount += update.$inc.vaultEntryCount;
+    return { modifiedCount: 1 };
+  };
+
+  Password.create = async ([data]) => {
     savedRecord = {
       ...data,
       _id: new mongoose.Types.ObjectId(),
       createdAt: new Date(),
     };
-    return savedRecord;
+    return [savedRecord];
   };
 
   const createContextResult = createContext({

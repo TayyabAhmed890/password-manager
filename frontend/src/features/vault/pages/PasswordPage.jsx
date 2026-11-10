@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Edit3, Eye, EyeOff, LoaderCircle, LockKeyhole, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { Edit3, Eye, EyeOff, LoaderCircle, LockKeyhole, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthApiError, getAuthErrorMessage } from '../../auth/api/authApi'
 import { useAuth } from '../../../app/useAuth'
@@ -7,12 +7,20 @@ import { deleteVaultEntry, getVaultEntries, revealVaultEntry } from '../api/vaul
 import UpdateVaultPasswordDialog from '../components/UpdateVaultPasswordDialog'
 import { useVaultToast } from '../components/useVaultToast'
 
+const MAX_VAULT_ENTRIES = 10
+
 const PasswordPage = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { clearAuthenticatedUser } = useAuth()
   const { showToast } = useVaultToast()
   const [entries, setEntries] = useState([])
+  const [vaultCount, setVaultCount] = useState(null)
+  const [maxEntries, setMaxEntries] = useState(MAX_VAULT_ENTRIES)
+  const [searchText, setSearchText] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
+  const [refreshVersion, setRefreshVersion] = useState(0)
   const [revealedPasswords, setRevealedPasswords] = useState({})
   const [visiblePasswords, setVisiblePasswords] = useState({})
   const [isLoading, setIsLoading] = useState(true)
@@ -34,47 +42,34 @@ const PasswordPage = () => {
     return false
   }, [clearAuthenticatedUser, navigate])
 
-  const loadEntries = async () => {
-    setIsRefreshing(true)
-    setErrorMessage('')
-    try {
-      const result = await getVaultEntries()
-      setEntries(result.data)
-      showToast('Your saved logins are up to date.')
-    } catch (error) {
-      if (handleExpiredSession(error)) return
-      const message = getAuthErrorMessage(
-        error,
-        'We could not load your vault. Please try again.',
-        { 401: 'Your session has expired. Please log in again.' }
-      )
-      setErrorMessage(message)
-      showToast(message, 'error')
-    } finally {
-      setIsRefreshing(false)
-    }
-  }
-
   useEffect(() => {
     let active = true
 
     const fetchEntries = async () => {
       try {
-        const result = await getVaultEntries()
-        if (active) setEntries(result.data)
-      } catch (error) {
+        const result = await getVaultEntries(searchTerm)
         if (active) {
-          if (handleExpiredSession(error)) return
-          const message = getAuthErrorMessage(
-            error,
-            'We could not load your vault. Please try again.',
-            { 401: 'Your session has expired. Please log in again.' }
-          )
-          setErrorMessage(message)
-          showToast(message, 'error')
+          setErrorMessage('')
+          setEntries(result.data)
+          setVaultCount(result.vault?.currentCount ?? result.data.length)
+          setMaxEntries(result.vault?.maxEntries ?? MAX_VAULT_ENTRIES)
         }
+      } catch (error) {
+        if (!active) return
+        if (handleExpiredSession(error)) return
+        const message = getAuthErrorMessage(
+          error,
+          'We could not load your vault. Please try again.',
+          { 401: 'Your session has expired. Please log in again.' }
+        )
+        setErrorMessage(message)
+        showToast(message, 'error')
       } finally {
-        if (active) setIsLoading(false)
+        if (active) {
+          setIsLoading(false)
+          setIsSearching(false)
+          setIsRefreshing(false)
+        }
       }
     }
 
@@ -82,7 +77,15 @@ const PasswordPage = () => {
     return () => {
       active = false
     }
-  }, [handleExpiredSession, showToast])
+  }, [handleExpiredSession, searchTerm, refreshVersion, showToast])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setSearchTerm(searchText.trim())
+    }, 300)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [searchText])
 
   useEffect(() => {
     if (location.state?.notice) {
@@ -131,6 +134,7 @@ const PasswordPage = () => {
     try {
       await deleteVaultEntry(id)
       setEntries((currentEntries) => currentEntries.filter((entry) => entry.id !== id))
+      setVaultCount((count) => count === null ? count : Math.max(0, count - 1))
       setRevealedPasswords((passwords) => {
         const next = { ...passwords }
         delete next[id]
@@ -194,14 +198,31 @@ const PasswordPage = () => {
             Find a saved sign-in here whenever you need it.
           </p>
         </div>
-        <Link
-          to="/passwords/create"
-          className="inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-xl border border-neutral-950 bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-700 sm:self-auto"
-        >
-          <Plus size={17} aria-hidden="true" />
-          Add a password
-        </Link>
+        {vaultCount !== null && vaultCount >= maxEntries ? (
+          <button
+            type="button"
+            disabled
+            className="inline-flex min-h-11 cursor-not-allowed items-center justify-center gap-2 self-start rounded-xl border border-neutral-200 bg-neutral-100 px-4 text-sm font-semibold text-neutral-500 sm:self-auto"
+          >
+            <Plus size={17} aria-hidden="true" />
+            Vault full
+          </button>
+        ) : (
+          <Link
+            to="/passwords/create"
+            className="inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-xl border border-neutral-950 bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-700 sm:self-auto"
+          >
+            <Plus size={17} aria-hidden="true" />
+            Add a password
+          </Link>
+        )}
       </header>
+
+      {vaultCount !== null && vaultCount >= maxEntries && (
+        <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-900">
+          Your vault is full ({vaultCount}/{maxEntries}). Delete a saved password before adding another.
+        </p>
+      )}
 
       <section aria-labelledby="saved-logins-heading" className="mt-6">
         <div className="flex items-center justify-between gap-3">
@@ -211,14 +232,19 @@ const PasswordPage = () => {
             </h2>
             {!isLoading && (
               <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600">
-                {entries.length} {entries.length === 1 ? 'sign-in' : 'sign-ins'}
+                {searchTerm
+                  ? `${entries.length} of ${vaultCount ?? entries.length} matches`
+                  : `${vaultCount ?? entries.length}/${maxEntries} saved`}
               </span>
             )}
           </div>
-          {entries.length > 0 && (
+          {vaultCount > 0 && (
             <button
               type="button"
-              onClick={loadEntries}
+              onClick={() => {
+                setIsRefreshing(true)
+                setRefreshVersion((version) => version + 1)
+              }}
               disabled={isRefreshing || isLoading}
               className="inline-flex min-h-9 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-neutral-200 bg-white px-3 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -232,6 +258,27 @@ const PasswordPage = () => {
           <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-800">
             {errorMessage}
           </p>
+        )}
+
+        {vaultCount > 0 && (
+          <label className="mt-4 flex min-h-11 items-center gap-3 rounded-xl border border-neutral-200 bg-white px-3.5 focus-within:border-neutral-400">
+            <Search size={17} className="shrink-0 text-neutral-400" aria-hidden="true" />
+            <input
+              type="search"
+              value={searchText}
+              onChange={(event) => {
+                const nextSearch = event.target.value
+                if (nextSearch.trim() === searchTerm) setIsSearching(false)
+                else setIsSearching(true)
+                setSearchText(nextSearch)
+              }}
+              maxLength={100}
+              placeholder="Search website or email"
+              aria-label="Search saved passwords by website or email"
+              className="min-w-0 flex-1 bg-transparent py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400"
+            />
+            {isSearching && <LoaderCircle size={16} className="animate-spin text-neutral-400" aria-label="Searching" />}
+          </label>
         )}
 
         {isLoading ? (
@@ -264,11 +311,32 @@ const PasswordPage = () => {
             <p className="text-sm text-neutral-600">Your saved logins aren’t available right now.</p>
             <button
               type="button"
-              onClick={loadEntries}
+              onClick={() => {
+                setIsRefreshing(true)
+                setRefreshVersion((version) => version + 1)
+              }}
               disabled={isRefreshing}
               className="mt-4 min-h-10 rounded-xl border border-neutral-300 px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
             >
               {isRefreshing ? 'Trying again…' : 'Try again'}
+            </button>
+          </div>
+        ) : entries.length === 0 && searchTerm && vaultCount > 0 ? (
+          <div className="mt-5 flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white px-5 text-center">
+            <Search size={20} className="text-neutral-400" aria-hidden="true" />
+            <h3 className="mt-3 text-base font-semibold text-neutral-950">No matching logins</h3>
+            <p className="mt-2 text-sm leading-6 text-neutral-500">
+              Try a different website or email search.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchText('')
+                setSearchTerm('')
+              }}
+              className="mt-4 min-h-10 rounded-xl border border-neutral-300 px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+            >
+              Clear search
             </button>
           </div>
         ) : entries.length === 0 ? (

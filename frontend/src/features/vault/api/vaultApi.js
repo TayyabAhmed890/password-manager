@@ -1,6 +1,13 @@
 import { requestApi } from '../../auth/api/authApi.js'
 
-export const getVaultEntries = () => requestApi('/api/store')
+export const getVaultEntries = (search = '') => {
+  const query = search.trim()
+  const path = query
+    ? `/api/store?search=${encodeURIComponent(query)}`
+    : '/api/store'
+
+  return requestApi(path)
+}
 
 export const createVaultEntry = (entry) =>
   requestApi('/api/store/create', { method: 'POST', payload: entry })
