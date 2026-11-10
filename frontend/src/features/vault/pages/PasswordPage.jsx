@@ -306,6 +306,26 @@ const PasswordPage = () => {
               </div>
             ))}
           </div>
+        ) : isSearching ? (
+          <div className="mt-5 space-y-3" role="status" aria-label="Loading saved logins">
+            <span className="sr-only">Loading saved logins</span>
+            {[0, 1].map((item) => (
+              <div
+                key={item}
+                aria-hidden="true"
+                className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="size-10 animate-pulse rounded-xl bg-neutral-100" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <span className="block h-4 w-2/5 animate-pulse rounded bg-neutral-100" />
+                    <span className="block h-3 w-3/5 animate-pulse rounded bg-neutral-100" />
+                    <span className="mt-3 block h-10 w-full animate-pulse rounded-lg bg-neutral-100" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : entries.length === 0 && errorMessage ? (
           <div className="mt-5 flex min-h-64 flex-col items-center justify-center rounded-2xl border border-neutral-200 bg-white px-5 text-center">
             <p className="text-sm text-neutral-600">Your saved logins aren’t available right now.</p>
@@ -333,6 +353,7 @@ const PasswordPage = () => {
               onClick={() => {
                 setSearchText('')
                 setSearchTerm('')
+                setIsSearching(true)
               }}
               className="mt-4 min-h-10 rounded-xl border border-neutral-300 px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
             >
