@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 const User = require("../models/user.model");
 const Password = require("../models/store.model");

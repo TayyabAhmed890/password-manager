@@ -363,12 +363,12 @@ const AdminLayoutContent = () => {
               {isMenuOpen ? <X size={19} /> : <Menu size={19} />}
             </button>
             <Link to="/" className="flex items-center gap-3" aria-label="Keynest Admin overview">
-              <span className="flex size-10 items-center justify-center rounded-xl bg-slate-950 text-white">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-slate-950 text-white shadow-sm">
                 <span className="text-sm font-bold">K</span>
               </span>
-              <span>
-                <span className="block text-sm font-semibold text-slate-950">Keynest</span>
-                <span className="block text-xs text-slate-500">Admin console</span>
+              <span className="leading-tight">
+                <span className="block text-sm font-semibold tracking-tight text-slate-950">Keynest</span>
+                <span className="mt-0.5 block text-[10px] font-semibold">Admin Panel</span>
               </span>
             </Link>
           </div>
