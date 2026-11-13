@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { LoaderCircle, RefreshCw, Search, Trash2, Users } from 'lucide-react'
+import { LoaderCircle, RefreshCw, Search, Trash2, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAdminAuth } from '../../auth/useAdminAuth.js'
 import { deleteUser, getUsers } from '../api/usersApi.js'
@@ -18,6 +19,7 @@ const UsersPage = () => {
   const [query, setQuery] = useState('')
   const [selectedUser, setSelectedUser] = useState(null)
   const [deletingId, setDeletingId] = useState('')
+  const [deleteError, setDeleteError] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -86,6 +88,11 @@ const UsersPage = () => {
     setDeleteError('')
     setSelectedUser(user)
   }
+
+  const openDeleteDialog = (user) => {
+    setDeleteError('')
+    setSelectedUser(user)
+  }
   const changePage = (nextPage) => {
     setIsLoading(true)
     setQuery('')
@@ -95,16 +102,19 @@ const UsersPage = () => {
   const confirmDelete = async () => {
     if (!selectedUser || deletingId) return
     setDeleteError('')
+    setDeleteError('')
     setDeletingId(selectedUser.id)
     try {
       await deleteUser(selectedUser.id)
       showToast(`Deleted ${selectedUser.email} and their vault data.`)
       setSelectedUser(null)
       setDeleteError('')
+      setDeleteError('')
       setIsRefreshing(true)
       setRefreshVersion((current) => current + 1)
     } catch (error) {
       if (handleExpiredSession(error)) return
+      setDeleteError(error.message || 'Could not delete this user. Please try again.')
       setDeleteError(error.message || 'Could not delete this user. Please try again.')
     } finally {
       setDeletingId('')
@@ -116,8 +126,10 @@ const UsersPage = () => {
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           
+          
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Users</h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
+            Review account details and manage access to the vault.
             Review account details and manage access to the vault.
           </p>
         </div>
@@ -131,13 +143,19 @@ const UsersPage = () => {
             ? <LoaderCircle size={15} className="animate-spin" aria-hidden="true" />
             : <RefreshCw size={15} aria-hidden="true" />}
           {isRefreshing ? 'Refreshing…' : 'Refresh'}
+          {isRefreshing
+            ? <LoaderCircle size={15} className="animate-spin" aria-hidden="true" />
+            : <RefreshCw size={15} aria-hidden="true" />}
+          {isRefreshing ? 'Refreshing…' : 'Refresh'}
         </button>
       </header>
 
       <section aria-labelledby="all-users-title" className="mt-7 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section aria-labelledby="all-users-title" className="mt-7 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="flex items-center gap-2">
             <Users size={18} className="text-slate-500" aria-hidden="true" />
+            <h2 id="all-users-title" className="font-semibold text-slate-950">All users</h2>
             <h2 id="all-users-title" className="font-semibold text-slate-950">All users</h2>
             {!isLoading && <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{totalUsers.toLocaleString()}</span>}
           </div>
@@ -196,6 +214,7 @@ const UsersPage = () => {
                   <button
                     type="button"
                     onClick={() => openDeleteDialog(user)}
+                    onClick={() => openDeleteDialog(user)}
                     aria-label={`Delete ${user.email}`}
                     className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-700 hover:bg-red-50"
                   >
@@ -224,6 +243,7 @@ const UsersPage = () => {
                       <td className="px-5 py-4 text-right">
                         <button
                           type="button"
+                          onClick={() => openDeleteDialog(user)}
                           onClick={() => openDeleteDialog(user)}
                           aria-label={`Delete ${user.email}`}
                           className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-700 hover:bg-red-50"
@@ -280,6 +300,11 @@ const UsersPage = () => {
             <p className="mt-2 break-all text-sm leading-6 text-slate-600">
               This permanently deletes <span className="font-medium text-slate-900">{selectedUser.email}</span> and all their saved vault entries.
             </p>
+            {deleteError && (
+              <p role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm leading-5 text-red-800">
+                {deleteError}
+              </p>
+            )}
             {deleteError && (
               <p role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm leading-5 text-red-800">
                 {deleteError}
