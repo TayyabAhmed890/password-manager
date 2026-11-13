@@ -126,7 +126,7 @@ const AdminDashboardPage = () => {
             ) : (
               <>
                 <p className="mt-2 text-3xl font-semibold leading-none tracking-tight text-slate-950">
-                  {errorMessage || !data ? '—' : data.pagination.totalUsers.toLocaleString()}
+                  {errorMessage || !data?.pagination ? '—' : data.pagination.totalUsers.toLocaleString()}
                 </p>
                 <p className="mt-2 text-xs text-slate-500">
                   {errorMessage ? 'Count unavailable' : 'Accounts registered'}

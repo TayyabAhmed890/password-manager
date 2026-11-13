@@ -86,9 +86,9 @@ const UsersPage = () => {
     setDeleteError('')
     setSelectedUser(user)
   }
-
   const changePage = (nextPage) => {
     setIsLoading(true)
+    setQuery('')
     setPage(nextPage)
   }
 

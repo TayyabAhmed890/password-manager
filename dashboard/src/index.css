@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@theme {
+:root {
   --font-sans: "Inter", "Aptos", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
 }
 
