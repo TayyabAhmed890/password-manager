@@ -30,22 +30,34 @@ const navItems = [
 const VaultLayout = () => {
   const navigate = useNavigate()
   const { user, clearAuthenticatedUser } = useAuth()
+  const themeKey = user?.id ? `keynest-vault-theme-${user.id}` : null;
   const { showToast } = useVaultToast()
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
   const [isDarkMode, setIsDarkMode] = useState(
-    () => window.localStorage.getItem('keynest-vault-theme') === 'dark'
+    () => themeKey ? window.localStorage.getItem(themeKey) === 'dark' : false
   )
   const [settingsMode, setSettingsMode] = useState('')
   const [logoutError, setLogoutError] = useState('')
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
   const displayName = getDisplayName(user)
   const initials = displayName.slice(0, 1).toUpperCase()
 
+  // 1. READ EFFECT: Jab bhi naya user login ho ya themeKey badle, us user ki saved theme load karo
   useEffect(() => {
-    window.localStorage.setItem('keynest-vault-theme', isDarkMode ? 'dark' : 'light')
-  }, [isDarkMode])
+    if (!themeKey) return
+    const savedTheme = window.localStorage.getItem(themeKey)
+    setIsDarkMode(savedTheme === 'dark')
+  }, [themeKey])
+
+  // 2. WRITE EFFECT: Jab user dark/light toggle kare, to us specific user ki key me setting save karo
+  useEffect(() => {
+    if (themeKey) {
+      window.localStorage.setItem(themeKey, isDarkMode ? 'dark' : 'light')
+    }
+  }, [isDarkMode, themeKey])
 
   const handleLogout = async () => {
     if (isLoggingOut) return
@@ -53,11 +65,13 @@ const VaultLayout = () => {
     setLogoutError('')
     try {
       await logoutAccount()
+      setIsLogoutDialogOpen(false)
       clearAuthenticatedUser()
       showToast('You have logged out.')
       navigate('/', { replace: true })
     } catch (error) {
       if (error instanceof AuthApiError && error.status === 401) {
+        setIsLogoutDialogOpen(false)
         clearAuthenticatedUser()
         showToast('You have logged out.')
         navigate('/', { replace: true })
@@ -133,25 +147,35 @@ const VaultLayout = () => {
           </p>
           {navContent}
         </div>
-        <div className={`mt-auto space-y-1 border-t border-neutral-200 pt-4 ${isSidebarCollapsed ? 'lg:hidden' : ''}`}>
+        <div className={`mt-auto space-y-1 border-t border-neutral-200 pt-4 ${isSidebarCollapsed ? 'lg:px-0' : ''}`}>
           <button
             type="button"
             onClick={() => setSettingsMode('delete-account')}
-            className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-red-700 transition hover:bg-red-50"
+            title={isSidebarCollapsed ? 'Delete profile' : undefined}
+            aria-label="Delete profile"
+            className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-red-700 transition hover:bg-red-50 ${
+              isSidebarCollapsed ? 'lg:justify-center lg:px-0' : ''
+            }`}
           >
             <Trash2 size={18} aria-hidden="true" />
-            Delete profile
+            <span className={isSidebarCollapsed ? 'lg:hidden' : ''}>Delete profile</span>
           </button>
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={() => setIsLogoutDialogOpen(true)}
             disabled={isLoggingOut}
-            className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60"
+            title={isSidebarCollapsed ? 'Log out' : undefined}
+            aria-label="Log out"
+            className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 ${
+              isSidebarCollapsed ? 'lg:justify-center lg:px-0' : ''
+            }`}
           >
             {isLoggingOut
               ? <span className="size-4.5 animate-spin rounded-full border-2 border-neutral-400 border-t-transparent" aria-hidden="true" />
               : <LogOut size={18} aria-hidden="true" />}
-            {isLoggingOut ? 'Logging out...' : 'Log out'}
+            <span className={isSidebarCollapsed ? 'lg:hidden' : ''}>
+              {isLoggingOut ? 'Logging out...' : 'Log out'}
+            </span>
           </button>
         </div>
       </aside>
@@ -238,7 +262,10 @@ const VaultLayout = () => {
                   <button
                     type="button"
                     role="menuitem"
-                    onClick={handleLogout}
+                    onClick={() => {
+                      setIsProfileOpen(false)
+                      setIsLogoutDialogOpen(true)
+                    }}
                     disabled={isLoggingOut}
                     className="flex min-h-10 w-full items-center gap-3 rounded-xl px-3 text-left text-sm text-neutral-700 hover:bg-neutral-100 disabled:opacity-60"
                   >
@@ -282,6 +309,53 @@ const VaultLayout = () => {
           mode={settingsMode}
           onClose={() => setSettingsMode('')}
         />
+      )}
+
+      {isLogoutDialogOpen && (
+        <div
+          role="presentation"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isLoggingOut) {
+              setIsLogoutDialogOpen(false)
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-vault-signout-title"
+            className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-6 shadow-xl"
+          >
+            <h2 id="confirm-vault-signout-title" className="text-lg font-semibold text-neutral-950">
+              Log out?
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-neutral-600">
+              You will need to enter your credentials again to access your password vault.
+            </p>
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                disabled={isLoggingOut}
+                onClick={() => setIsLogoutDialogOpen(false)}
+                className="inline-flex min-h-10 items-center justify-center rounded-xl border border-neutral-300 px-4 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isLoggingOut}
+                onClick={handleLogout}
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isLoggingOut
+                  ? <span className="size-4 animate-spin rounded-full border-2 border-neutral-400 border-t-white" aria-hidden="true" />
+                  : null}
+                {isLoggingOut ? 'Logging out...' : 'Log out'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

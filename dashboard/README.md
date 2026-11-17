@@ -1,39 +1,98 @@
-# Keynest Admin
+# Keynest Admin Console — Documentation
 
-Admin interface for managing user accounts. The dashboard uses the backend's
-cookie-based admin authentication and does not receive vault passwords or
-recovery secrets.
+Secure administrative dashboard for **Keynest Password Manager**. Built with React 19, Vite, Tailwind CSS v4, Lucide React, and React Router DOM v7. Provides privileged administrators with real-time platform metrics, paginated user management, cascaded account deletion, and administrative credentials management.
 
-## Local development
+---
 
-1. Start the backend on `http://localhost:7000`.
-2. Ensure the backend allows `http://localhost:5174` as its admin origin.
-3. From this directory, run `npm install` once and then `npm run dev`.
+## 🏗️ Architecture & Organization
 
-The Vite development server proxies `/api` requests to the local backend.
-Admin login is limited to five attempts per 15 minutes per IP and email. If
-Upstash is not configured in development, rate limits use a bounded in-process
-store; production requires the configured shared Upstash limiter.
+The dashboard is structured into targeted feature modules with strict isolation from end-user vault storage:
 
-Admins can change their password while signed in or reset it with their account
-recovery code from the login page. Either operation invalidates existing
-sessions and issues a new recovery code that must be saved.
-Admins can also permanently delete their own profile from the sidebar after
-confirming their current password.
-The user list is cached in Upstash for 30 seconds and invalidated when an
-account or its vault entry count changes.
+```
+dashboard/
+├── api/
+│   └── proxy.js             # Vercel serverless proxy preventing origin leak in browser bundles
+├── src/
+│   ├── App.jsx              # Router setup, admin route guards & toast notification wrapping
+│   ├── main.jsx             # React DOM root render
+│   ├── features/
+│   │   ├── auth/            # Administrative Auth Module
+│   │   │   ├── api/authApi.js             # Administrative auth endpoints (/api/auth/admin/*)
+│   │   │   ├── components/AuthLayout.jsx  # Split-screen auth layout aligned with main application design
+│   │   │   ├── pages/
+│   │   │   │   ├── AdminLoginPage.jsx     # Admin credentials login with dedicated access verification
+│   │   │   │   ├── AdminForgotPasswordPage.jsx # Admin recovery code reset with instant copy feedback
+│   │   │   │   └── AdminChangePasswordPage.jsx # In-session admin password update with rotated recovery code
+│   │   │   ├── AdminAuthContext.jsx       # Context verifying admin role session integrity
+│   │   │   ├── adminAccount.js            # Strict validation ensuring user.role === 'admin'
+│   │   │   └── passwordValidation.js      # Password byte limit and confirmation checks
+│   │   ├── dashboard/       # Administrative Metrics Module
+│   │   │   └── pages/AdminDashboardPage.jsx # Live user counts, device-time greeting & recent signups
+│   │   └── users/           # User Directory & Audit Module
+│   │       ├── api/usersApi.js            # Fetches paginated user lists & triggers account deletion
+│   │       ├── pages/UsersPage.jsx        # Searchable, paginated data table with dual confirmation modals
+│   │       └── utils/userList.js          # Case-insensitive filtering & pagination state derivation
+│   └── shared/              # Reusable UI & Network Primitives
+│       ├── components/
+│       │   ├── AdminLayout.jsx            # Collapsible navigation drawer, header & profile controls
+│       │   ├── AdminRoute.jsx             # Strict route guard protecting routes from non-admins
+│       │   ├── Dialog.jsx                 # Accessible focus-trapping modal dialogue
+│       │   └── ToastProvider.jsx          # Top-level operational feedback alerts
+│       └── lib/
+│           ├── apiClient.js               # Centralized fetch wrapper handling credentialed sessions
+│           └── authErrors.js              # Intercepts 401s and distinguishes expired sessions
+└── tests/                   # 26 automated unit and integration tests
+```
 
-## Vercel deployment
+---
 
-Deploy this directory as its own Vercel project with the project root set to
-`dashboard`. Set the server-only `BACKEND_URL` environment variable to the
-backend's HTTPS origin (for example, `https://api.example.com`); do not use a
-`VITE_` prefix. Add the deployed dashboard origin to the backend's `ADMIN_URL`.
-The Vercel API function at `api/proxy.js` forwards `/api/*` requests and cookies
-without exposing the backend origin in the browser bundle. The explicit
-`/api/:path*` rewrite is listed before the SPA fallback so API calls cannot
-accidentally receive `index.html`.
+## 🛡️ Administrative Security & Features
 
-## Checks
+### 1. Zero Vault Access
+* The admin API and console **never** receive user passwords, encryption IVs, or vault secrets.
+* Admins are restricted solely to auditing account presence, registration dates, and total credential count metrics.
 
-Run `npm test`, `npm run lint`, and `npm run build`.
+### 2. Time-Aware Personalized Workspace
+* Dashboard header automatically adapts to the administrator's **local device clock (client timezone)**:
+  * `05:00 - 11:59`: **Good morning**
+  * `12:00 - 16:59`: **Good afternoon**
+  * `17:00 - 21:59`: **Good evening**
+  * `22:00 - 04:59`: **Good night**
+* Administrator name is automatically sanitized, stripping digits and raw email characters to display a clean first name.
+
+### 3. Role-Enforced Route Guard (`AdminRoute`)
+* Requests are checked against `user.role === 'admin'`.
+* Non-admin users attempting to open `/` or `/users` are strictly blocked and redirected to `/access-denied`.
+* Unauthenticated sessions are redirected to `/login`.
+
+### 4. Paginated Directory & Cascade Deletion
+* Displays registered users in a responsive table (or mobile card list).
+* In-place email search filtering resets automatically upon pagination changes to avoid deceptive empty views.
+* Deleting a user account executes a cascade purge deleting the user record and all associated encrypted vault credentials atomically.
+
+---
+
+## 💻 Local Development & Build
+
+### Requirements
+* Backend running locally on `http://localhost:7000` with `http://localhost:5174` added to `ADMIN_URL` / `CLIENT_URL`.
+
+### Setup
+```bash
+cd dashboard
+npm install
+npm run dev
+```
+Launches the admin development server on `http://localhost:5174`.
+
+### Production Build
+```bash
+npm run build
+```
+Creates a production-ready, minified bundle in `dist/`.
+
+### Automated Tests
+```bash
+npm test
+```
+Runs 26 automated tests verifying admin authentication verification, response structure validation, session expiry handling, and proxy headers.

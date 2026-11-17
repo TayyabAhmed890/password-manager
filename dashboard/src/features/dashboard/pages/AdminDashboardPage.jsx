@@ -13,15 +13,31 @@ import { ApiError } from '../../../shared/lib/apiClient.js'
 
 const getGreeting = () => {
   const hour = new Date().getHours()
-  if (hour < 12) return 'Good morning'
-  if (hour < 18) return 'Good afternoon'
-  return 'Good evening'
+  if (hour >= 5 && hour < 12) return 'Good morning'
+  if (hour >= 12 && hour < 16) return 'Good afternoon'
+  if (hour >= 16 && hour < 20) return 'Good evening'
+  return 'Good night'
 }
 
 const getAdminName = (admin) => {
-  const name = typeof admin?.name === 'string' ? admin.name.trim() : ''
-  if (name) return name.split(/\s+/)[0]
-  return admin?.email?.split('@')[0] || 'Admin'
+  const rawName = typeof admin?.name === 'string' ? admin.name.trim() : ''
+  if (rawName) {
+    // Agar full name ho toh pehla word lein aur digits remove karein
+    const firstName = rawName.split(/\s+/)[0].replace(/\d+/g, '').trim()
+    if (firstName) {
+      return firstName.charAt(0).toUpperCase() + firstName.slice(1)
+    }
+  }
+
+  // Agar name nahi hai toh email username se clean name banayein (numbers remove karein)
+  const emailPrefix = admin?.email?.split('@')[0] || ''
+  const cleanPrefix = emailPrefix.replace(/[._-]+/g, ' ').replace(/\d+/g, '').trim()
+  if (cleanPrefix) {
+    const firstWord = cleanPrefix.split(/\s+/)[0]
+    return firstWord.charAt(0).toUpperCase() + firstWord.slice(1)
+  }
+
+  return 'Admin'
 }
 
 const getInitials = (email) => {
