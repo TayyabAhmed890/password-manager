@@ -138,7 +138,7 @@ body {
 .vault-app[data-theme="dark"] [class~="text-red-700"],
 .vault-app[data-theme="dark"] [class~="text-red-800"],
 .vault-app[data-theme="dark"] [class~="text-red-900"] {
-  color: #f0a6a7;
+  color: #ff6366;
 }
 
 .vault-app[data-theme="dark"] [class~="bg-amber-50"] {
