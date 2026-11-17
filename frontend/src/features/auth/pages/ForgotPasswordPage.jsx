@@ -113,9 +113,7 @@ const ForgotPasswordPage = () => {
   return (
     <AuthLayout>
       <div>
-        <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-neutral-950 text-white">
-          <KeyRound size={21} aria-hidden="true" />
-        </div>
+       
         <p className="text-sm font-medium text-neutral-500">
           {forgotPasswordContent.eyebrow}
         </p>
