@@ -35,7 +35,7 @@ const VaultToastProvider = ({ children }) => {
     <VaultToastContext.Provider value={{ showToast }}>
       {children}
       {toast && (
-        <div className="pointer-events-none fixed bottom-5 right-4 z-60 w-[calc(100%-2rem)] max-w-sm sm:bottom-6 sm:right-6">
+        <div className="vault-toast pointer-events-none fixed bottom-5 right-4 z-60 w-[calc(100%-2rem)] max-w-sm sm:bottom-6 sm:right-6">
           <div
             role={toast.type === 'error' ? 'alert' : 'status'}
             className={`pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3 shadow-lg transition-all duration-200 ease-out motion-reduce:transition-none ${

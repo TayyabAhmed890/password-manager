@@ -149,7 +149,7 @@ const Hero = () => {
               {/* Login Cards */}
               <div className="mt-3 space-y-2.5">
 
-                {heroContent.previewEntries.map(({ mark, name, detail, category }) => (
+                {heroContent.previewEntries.map(({ mark, name, detail }) => (
 
                   <div
                     key={name}
@@ -171,9 +171,7 @@ const Hero = () => {
                             {name}
                           </p>
 
-                          <span className="shrink-0 rounded-md bg-neutral-100 px-1.5 py-0.5 text-[8px] text-neutral-500">
-                            {category}
-                          </span>
+
 
                         </div>
 

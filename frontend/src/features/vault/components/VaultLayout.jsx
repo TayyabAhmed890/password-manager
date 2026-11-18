@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
+import { flushSync } from 'react-dom'
 import {
   ChevronDown,
   CirclePlus,
@@ -57,6 +58,34 @@ const VaultLayout = () => {
       window.localStorage.setItem(themeKey, isDarkMode ? 'dark' : 'light')
     }
   }, [isDarkMode, themeKey])
+
+  // 3. ROOT THEME ATTR: Toast notifications (jo VaultLayout ke bahar render hoti hain) ko bina slow :has() ke theme karne ke liye
+  useLayoutEffect(() => {
+    const root = document.documentElement
+    if (isDarkMode) {
+      root.setAttribute('data-vault-theme', 'dark')
+    } else {
+      root.removeAttribute('data-vault-theme')
+    }
+    return () => {
+      root.removeAttribute('data-vault-theme')
+      root.classList.remove('theme-switching')
+    }
+  }, [isDarkMode])
+
+  const toggleTheme = () => {
+    const root = document.documentElement
+    root.classList.add('theme-switching')
+
+    flushSync(() => {
+      setIsDarkMode((darkMode) => !darkMode)
+    })
+
+    // Browser ko force karein ke nayi theme ke styles transition:none ke sath turant commit kare
+    void window.getComputedStyle(document.body).backgroundColor
+
+    root.classList.remove('theme-switching')
+  }
 
   const handleLogout = async () => {
     if (isLoggingOut) return
@@ -117,7 +146,7 @@ const VaultLayout = () => {
       className="vault-app min-h-screen bg-neutral-50 text-neutral-950"
       data-theme={isDarkMode ? 'dark' : 'light'}
     >
-      <aside className={`fixed inset-y-0 left-0 z-20 hidden flex-col border-r border-neutral-200 bg-white py-6 transition-[width,padding] duration-200 lg:flex ${
+      <aside className={`fixed inset-y-0 left-0 z-20 hidden flex-col border-r border-neutral-200 bg-white py-6 transition-[width,padding] duration-100 lg:flex ${
         isSidebarCollapsed ? 'w-20 px-3' : 'w-64 px-5'
       }`}>
         <div className={`flex min-h-9 items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between gap-2'}`}>
@@ -133,11 +162,11 @@ const VaultLayout = () => {
             aria-label={isSidebarCollapsed ? 'Open sidebar' : 'Close sidebar'}
             aria-expanded={!isSidebarCollapsed}
             title={isSidebarCollapsed ? 'Open sidebar' : 'Close sidebar'}
-            className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 transition hover:bg-neutral-50 hover:text-neutral-950"
+            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-neutral-600 transition hover:bg-neutral-50 hover:text-neutral-950"
           >
             {isSidebarCollapsed
-              ? <PanelLeftOpen size={17} aria-hidden="true" />
-              : <PanelLeftClose size={17} aria-hidden="true" />}
+              ? <PanelLeftOpen size={20} aria-hidden="true" />
+              : <PanelLeftClose size={20} aria-hidden="true" />}
           </button>
         </div>
         <div className="mt-8 border-t border-neutral-200 pt-6">
@@ -182,7 +211,16 @@ const VaultLayout = () => {
           <div className="flex h-18 items-center justify-between gap-4 px-4 sm:px-7">
             <div className="flex items-center gap-3">
               <NavLink to="/passwords" aria-label="Keynest vault" className="inline-flex items-center gap-1">
-                <img src={isDarkMode ? '/keynest white.png' : '/keynest.png'} alt="" className="size-11 object-contain" />
+                <img
+                  src="/keynest.png"
+                  alt=""
+                  className={`size-11 object-contain ${isDarkMode ? 'hidden' : 'block'}`}
+                />
+                <img
+                  src="/keynest white.png"
+                  alt=""
+                  className={`size-11 object-contain ${isDarkMode ? 'block' : 'hidden'}`}
+                />
                 <span className="text-xl font-black font-space">Keynest</span>
               </NavLink>
               
@@ -191,7 +229,16 @@ const VaultLayout = () => {
             <div className="flex items-center gap-2 font-rope font-semibold">
               <button
                 type="button"
-                onClick={() => setIsDarkMode((darkMode) => !darkMode)}
+                className="flex size-10 items-center justify-center rounded-xl text-neutral-700 lg:hidden"
+                aria-label={isMobileNavOpen ? 'Close navigation' : 'Open navigation'}
+                aria-expanded={isMobileNavOpen}
+                onClick={() => setIsMobileNavOpen((open) => !open)}
+              >
+                {isMobileNavOpen ? <X size={19} /> : <Menu size={19} />}
+              </button>
+              <button
+                type="button"
+                onClick={toggleTheme}
                 aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
                 aria-pressed={isDarkMode}
                 title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -200,15 +247,6 @@ const VaultLayout = () => {
                 {isDarkMode
                   ? <Sun size={17} aria-hidden="true" />
                   : <Moon size={17} aria-hidden="true" />}
-              </button>
-              <button
-                type="button"
-                className="flex size-10 items-center justify-center rounded-xl border border-neutral-200 text-neutral-700 lg:hidden"
-                aria-label={isMobileNavOpen ? 'Close navigation' : 'Open navigation'}
-                aria-expanded={isMobileNavOpen}
-                onClick={() => setIsMobileNavOpen((open) => !open)}
-              >
-                {isMobileNavOpen ? <X size={19} /> : <Menu size={19} />}
               </button>
               <div className="relative">
               <button

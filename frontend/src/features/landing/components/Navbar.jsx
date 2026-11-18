@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, KeyRound, Menu, X } from 'lucide-react'
+import { ArrowRight, Menu, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { brandContent, navigationLinks } from '../data/landingContent'
 
@@ -53,7 +53,7 @@ const Navbar = () => {
 
         <button
           type="button"
-          className="flex size-10 items-center justify-center rounded-xl border border-neutral-200 text-neutral-800 transition hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 md:hidden"
+          className="flex size-10 items-center justify-center rounded-xl text-neutral-800 transition hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 md:hidden"
           aria-label={isMenuOpen ? brandContent.closeMenuLabel : brandContent.openMenuLabel}
           aria-expanded={isMenuOpen}
           aria-controls="mobile-navigation"
@@ -64,11 +64,11 @@ const Navbar = () => {
       </div>
 
       <div
-        className={`grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none md:hidden ${isMenuOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
+        className={`grid overflow-hidden transition-[grid-template-rows,opacity] duration-100 ease-out motion-reduce:transition-none md:hidden ${isMenuOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
         aria-hidden={!isMenuOpen}
         inert={!isMenuOpen}
       >
-        <div className="min-h-0 overflow-hidden">
+        <div className="min-h-0 overflow-hidden font-space">
           <nav
             id="mobile-navigation"
             className="border-t border-neutral-200 bg-white px-5 py-5 sm:px-8"

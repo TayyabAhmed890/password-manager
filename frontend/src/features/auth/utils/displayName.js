@@ -4,7 +4,13 @@ export const getDisplayName = (user) => {
     return savedName
   }
 
-  const emailName = user?.email?.split('@')[0]
+  const email = user?.email
+  if (!email) {
+    return 'Account'
+  }
+
+  const atIndex = email.indexOf('@')
+  const emailName = atIndex === -1 ? email : email.slice(0, atIndex)
   if (!emailName) {
     return 'Account'
   }

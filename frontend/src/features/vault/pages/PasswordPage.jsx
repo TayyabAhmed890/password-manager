@@ -28,7 +28,7 @@ const PasswordPage = () => {
   const [revealingId, setRevealingId] = useState('')
   const [deletingId, setDeletingId] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState('')
-  const [mobileDeleteId, setMobileDeleteId] = useState('')
+  const [mobileDeleteEntry, setMobileDeleteEntry] = useState(null)
   const [editingEntry, setEditingEntry] = useState(null)
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -136,17 +136,19 @@ const PasswordPage = () => {
       setEntries((currentEntries) => currentEntries.filter((entry) => entry.id !== id))
       setVaultCount((count) => count === null ? count : Math.max(0, count - 1))
       setRevealedPasswords((passwords) => {
+        if (!(id in passwords)) return passwords
         const next = { ...passwords }
         delete next[id]
         return next
       })
       setVisiblePasswords((visible) => {
+        if (!(id in visible)) return visible
         const next = { ...visible }
         delete next[id]
         return next
       })
       setConfirmDeleteId('')
-      setMobileDeleteId('')
+      setMobileDeleteEntry(null)
       showToast('Password removed from your vault.')
     } catch (error) {
       if (handleExpiredSession(error)) return
@@ -162,22 +164,24 @@ const PasswordPage = () => {
     }
   }
 
-  const requestDeleteConfirmation = (id) => {
+  const requestDeleteConfirmation = (entry) => {
     if (window.matchMedia('(max-width: 639px)').matches) {
-      setMobileDeleteId(id)
+      setMobileDeleteEntry(entry)
       return
     }
 
-    setConfirmDeleteId(id)
+    setConfirmDeleteId(entry.id)
   }
 
   const handlePasswordUpdated = () => {
     setRevealedPasswords((passwords) => {
+      if (!(editingEntry.id in passwords)) return passwords
       const next = { ...passwords }
       delete next[editingEntry.id]
       return next
     })
     setVisiblePasswords((visible) => {
+      if (!(editingEntry.id in visible)) return visible
       const next = { ...visible }
       delete next[editingEntry.id]
       return next
@@ -340,10 +344,10 @@ const PasswordPage = () => {
             </button>
           </div>
         ) : entries.length === 0 && searchTerm && vaultCount > 0 ? (
-          <div className="mt-5 flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white px-5 text-center">
+          <div className="mt-5 flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white px-5 text-center font-space">
             <Search size={20} className="text-neutral-400" aria-hidden="true" />
             <h3 className="mt-3 text-base font-semibold text-neutral-950">No matching logins</h3>
-            <p className="mt-2 text-sm leading-6 text-neutral-500">
+            <p className="mt-2 text-sm leading-6 text-neutral-500 font-sans">
               Try a different website or email search.
             </p>
             <button
@@ -467,7 +471,7 @@ const PasswordPage = () => {
                     ) : (
                       <button
                         type="button"
-                        onClick={() => requestDeleteConfirmation(entry.id)}
+                        onClick={() => requestDeleteConfirmation(entry)}
                         aria-label={`Remove ${entry.website} from your vault`}
                         title="Remove from vault"
                         className="flex size-10 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 "
@@ -489,7 +493,7 @@ const PasswordPage = () => {
           onUpdated={handlePasswordUpdated}
         />
       )}
-      {mobileDeleteId && (
+      {mobileDeleteEntry && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/50 p-4 sm:hidden font-rope font-bold">
           <section
             role="dialog"
@@ -502,25 +506,25 @@ const PasswordPage = () => {
             </h2>
             <p className="mt-2 text-sm leading-6 text-neutral-600 font-sans font-medium">
               This will permanently remove <span className="font-bold text-black font-jakarta">
-                {entries.find((entry) => entry.id === mobileDeleteId)?.website}
+                {mobileDeleteEntry.website}
               </span> from your vault.
             </p>
             <div className="mt-5 flex flex-col-reverse gap-3">
               <button
                 type="button"
-                onClick={() => setMobileDeleteId('')}
-                disabled={deletingId === mobileDeleteId}
+                onClick={() => setMobileDeleteEntry(null)}
+                disabled={deletingId === mobileDeleteEntry.id}
                 className="min-h-11 rounded-xl border border-neutral-300 px-4 text-sm font-semibold text-neutral-800 hover:bg-neutral-50 disabled:opacity-60"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={() => handleDelete(mobileDeleteId)}
-                disabled={deletingId === mobileDeleteId}
+                onClick={() => handleDelete(mobileDeleteEntry.id)}
+                disabled={deletingId === mobileDeleteEntry.id}
                 className="min-h-11 rounded-xl bg-red-700 px-4 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-60"
               >
-                {deletingId === mobileDeleteId ? 'Removing…' : 'Delete sign-in'}
+                {deletingId === mobileDeleteEntry.id ? 'Removing…' : 'Delete sign-in'}
               </button>
             </div>
           </section>

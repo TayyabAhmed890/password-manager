@@ -110,8 +110,10 @@ export const registerContent = {
   successMessage: 'Your account has been created successfully.',
   recoveryDescription:
     'This code is shown only once. Save it somewhere secure. You will need it if you forget your password.',
-  recoveryCopy: 'Copy recovery code',
+  recoveryCopy: 'Copy code',
   recoveryCopied: 'Copied',
+  recoveryDownload: 'Download .txt',
+  recoveryDownloaded: 'Downloaded',
   recoveryContinue: 'I saved my code. Continue to log in',
   recoveryCopyError: 'Could not copy the code. Select and copy it manually.',
   missingRecoveryCode:
