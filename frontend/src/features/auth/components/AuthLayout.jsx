@@ -13,7 +13,7 @@ const AuthLayout = ({ children }) => (
         
           <img src="/keynest white.png" alt="" className="size-11 object-contain" />
        
-        <span className="font-['Neue_Machina'] text-xl font-bold tracking-tight">{authLayoutContent.brand}</span>
+        <span className="font-space text-xl font-bold tracking-tight">{authLayoutContent.brand}</span>
       </Link>
 
       <div className="relative my-16 max-w-xl">
