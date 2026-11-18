@@ -192,7 +192,7 @@ const VaultLayout = () => {
               </button>
               <NavLink to="/passwords" aria-label="Keynest vault" className="inline-flex items-center gap-1">
                 <img src={isDarkMode ? '/keynest white.png' : '/keynest.png'} alt="" className="size-11 object-contain" />
-                <span className="text-xl font-bold font-['Neue_Machina']">Keynest</span>
+                <span className="text-xl font-black font-space">Keynest</span>
               </NavLink>
               
             </div>

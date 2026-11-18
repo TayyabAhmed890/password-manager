@@ -44,10 +44,8 @@ const AuthLayout = ({ children }) => (
 
     <section className="flex min-h-screen flex-col px-5 py-5 sm:px-8 sm:py-8">
       <header className="flex items-center justify-between lg:justify-end">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-950 lg:hidden">
-          <span className="flex size-9 items-center justify-center rounded-xl bg-neutral-950 text-white">
-            <KeyRound size={17} aria-hidden="true" />
-          </span>
+        <Link to="/" className="inline-flex items-center gap-1 text-xl font-bold text-neutral-950 lg:hidden font-space">
+          <img src="/keynest.png" alt="" className="size-11 object-contain" />
           {authLayoutContent.brand}
         </Link>
         <Link

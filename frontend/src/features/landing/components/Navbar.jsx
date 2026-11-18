@@ -21,8 +21,7 @@ const Navbar = () => {
             <img src="/keynest.png" alt="" className="size-11 object-contain" />
           
           <span
-            className="text-xl font-bold tracking-tight"
-            style={{ fontFamily: '"Neue Machina", sans-serif', fontWeight: 700 }}
+            className="text-xl font-bold tracking-tight font-space"
           >
             {brandContent.name}
           </span>
