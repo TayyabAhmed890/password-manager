@@ -115,7 +115,7 @@ const CreatePasswordPage = () => {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl font-jakarta">
       <Link
         to="/passwords"
         className="inline-flex min-h-9 items-center gap-2 text-sm font-medium text-neutral-600 hover:text-neutral-950"
@@ -125,13 +125,11 @@ const CreatePasswordPage = () => {
       </Link>
 
       <div className="mt-5">
-        <p className="text-sm font-medium text-neutral-500">Add to your vault</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em] text-neutral-950 sm:text-4xl">
-          Save a password
+        
+        <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em] font-space text-neutral-950 sm:text-4xl">
+          Create Password
         </h1>
-        <p className="mt-2 text-sm leading-6 text-neutral-600">
-          Store the sign-in details together so they are easy to find next time.
-        </p>
+        
       </div>
 
       <form
@@ -163,9 +161,9 @@ const CreatePasswordPage = () => {
           </div>
         )}
 
-        <div>
+        <div className='font-jakarta'>
           <label htmlFor="vault-website" className="mb-2 block text-sm font-medium text-neutral-800">
-            Website or service
+            Name
           </label>
           <div className="relative">
             <Globe2 size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" aria-hidden="true" />
@@ -193,7 +191,7 @@ const CreatePasswordPage = () => {
 
         <div>
           <label htmlFor="vault-email" className="mb-2 block text-sm font-medium text-neutral-800">
-            Sign-in email
+            Email
           </label>
           <div className="relative">
             <Mail size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" aria-hidden="true" />
@@ -234,7 +232,7 @@ const CreatePasswordPage = () => {
           error={fieldErrors.password}
         />
 
-        <p className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-xs leading-5 text-neutral-600">
+        <p className="font-sans rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-xs leading-5 text-neutral-600">
           Your saved password is encrypted before it is stored and is only revealed when you ask to view it.
         </p>
 

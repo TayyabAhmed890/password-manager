@@ -1,22 +1,22 @@
 import { Link } from 'react-router-dom'
-import { ArrowLeft, KeyRound, LockKeyhole } from 'lucide-react'
+import { ArrowLeft, LockKeyhole } from 'lucide-react'
 import { authLayoutContent } from '../data/authContent'
 
 const AuthLayout = ({ children }) => (
-  <main className="min-h-screen bg-neutral-50 lg:grid lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+  <main className=" min-h-screen bg-neutral-50 lg:grid lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
     <aside className="relative hidden min-h-screen overflow-hidden bg-neutral-950 px-10 py-9 text-white lg:flex lg:flex-col lg:justify-between xl:px-16">
       <div className="absolute -right-36 -top-32 size-112 rounded-full border border-white/10" aria-hidden="true" />
       <div className="absolute -right-20 -top-16 size-80 rounded-full border border-white/10" aria-hidden="true" />
       <div className="absolute -bottom-48 -left-32 size-120 rounded-full border border-white/10" aria-hidden="true" />
 
-      <Link to="/" className="relative inline-flex w-fit items-center gap-1" aria-label={`${authLayoutContent.brand} home`}>
+      <Link to="/" className="relative inline-flex w-fit items-center gap-1" aria-label={`${authLayoutContent.brand}`}>
         
           <img src="/keynest white.png" alt="" className="size-11 object-contain" />
        
         <span className="font-space text-xl font-bold tracking-tight">{authLayoutContent.brand}</span>
       </Link>
 
-      <div className="relative my-16 max-w-xl">
+      <div className="relative my-16 max-w-xl font-space">
         <p className="text-sm font-medium text-neutral-300">{authLayoutContent.sideLabel}</p>
         <h1 className="mt-5 text-4xl font-semibold leading-tight tracking-[-0.04em] xl:text-5xl">
           {authLayoutContent.sideTitle}

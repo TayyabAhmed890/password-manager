@@ -89,7 +89,7 @@ const VaultLayout = () => {
   }
 
   const navContent = (
-    <nav aria-label="Vault navigation" className="space-y-1">
+    <nav aria-label="Vault navigation" className="space-y-1 font-rope">
       {navItems.map(({ to, label, icon: Icon, end }) => (
         <NavLink
           key={to}
@@ -122,7 +122,7 @@ const VaultLayout = () => {
       }`}>
         <div className={`flex min-h-9 items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between gap-2'}`}>
           {!isSidebarCollapsed && (
-            <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-neutral-700">
+            <div className="flex min-w-0 items-center gap-2 text-sm text-neutral-700 font-jakarta font-bold">
               <UserRound size={17} className="shrink-0 text-neutral-500" aria-hidden="true" />
               <span className="truncate">Hello, {displayName}</span>
             </div>
@@ -144,7 +144,7 @@ const VaultLayout = () => {
           
           {navContent}
         </div>
-        <div className={`mt-auto space-y-1 border-t border-neutral-200 pt-4 ${isSidebarCollapsed ? 'lg:px-0' : ''}`}>
+        <div className={`mt-auto font-rope space-y-1 border-t border-neutral-200 pt-4 ${isSidebarCollapsed ? 'lg:px-0' : ''}`}>
           <button
             type="button"
             onClick={() => setSettingsMode('delete-account')}
@@ -181,15 +181,6 @@ const VaultLayout = () => {
         <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white/95 backdrop-blur">
           <div className="flex h-18 items-center justify-between gap-4 px-4 sm:px-7">
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                className="flex size-10 items-center justify-center rounded-xl border border-neutral-200 text-neutral-700 lg:hidden"
-                aria-label={isMobileNavOpen ? 'Close navigation' : 'Open navigation'}
-                aria-expanded={isMobileNavOpen}
-                onClick={() => setIsMobileNavOpen((open) => !open)}
-              >
-                {isMobileNavOpen ? <X size={19} /> : <Menu size={19} />}
-              </button>
               <NavLink to="/passwords" aria-label="Keynest vault" className="inline-flex items-center gap-1">
                 <img src={isDarkMode ? '/keynest white.png' : '/keynest.png'} alt="" className="size-11 object-contain" />
                 <span className="text-xl font-black font-space">Keynest</span>
@@ -197,7 +188,7 @@ const VaultLayout = () => {
               
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 font-rope font-semibold">
               <button
                 type="button"
                 onClick={() => setIsDarkMode((darkMode) => !darkMode)}
@@ -209,6 +200,15 @@ const VaultLayout = () => {
                 {isDarkMode
                   ? <Sun size={17} aria-hidden="true" />
                   : <Moon size={17} aria-hidden="true" />}
+              </button>
+              <button
+                type="button"
+                className="flex size-10 items-center justify-center rounded-xl border border-neutral-200 text-neutral-700 lg:hidden"
+                aria-label={isMobileNavOpen ? 'Close navigation' : 'Open navigation'}
+                aria-expanded={isMobileNavOpen}
+                onClick={() => setIsMobileNavOpen((open) => !open)}
+              >
+                {isMobileNavOpen ? <X size={19} /> : <Menu size={19} />}
               </button>
               <div className="relative">
               <button
@@ -318,12 +318,12 @@ const VaultLayout = () => {
             role="dialog"
             aria-modal="true"
             aria-labelledby="confirm-vault-signout-title"
-            className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-6 shadow-xl"
+            className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-6 shadow-xl font-rope"
           >
-            <h2 id="confirm-vault-signout-title" className="text-lg font-semibold text-neutral-950">
+            <h2 id="confirm-vault-signout-title" className="text-lg font-bold text-neutral-950">
               Log out?
             </h2>
-            <p className="mt-2 text-sm leading-6 text-neutral-600">
+            <p className="mt-2 text-sm leading-6 text-neutral-600 font-sans">
               You will need to enter your credentials again to access your password vault.
             </p>
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

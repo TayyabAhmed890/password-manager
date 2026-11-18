@@ -23,25 +23,24 @@ export const brandContent = {
 }
 
 export const heroContent = {
-  title: 'Your logins,',
-  titleEmphasis: 'right where you need them.',
+  title: 'Your digital keys,',
+  titleEmphasis: 'All in one place',
   description:
-    'Save your website accounts and sign-in details in one encrypted vault. Find an entry quickly, then reveal its password when you are ready to sign in.',
+    'Store and manage all your passwords and credentials in one place.',
   primaryAction: 'Create your account',
   secondaryAction: 'Explore the vault',
-  reassurance: 'Made for the logins you use every day.',
-  previewTitle: 'All logins',
-  previewDescription: 'Your personal vault',
+  
+  previewTitle: 'Your Vault',
   previewSearch: 'Search your vault',
-  previewCount: '3 saved logins',
-  previewAdd: 'New login',
+  previewCount: '2 saved passwords',
+  previewAdd: 'Add a Password',
   previewEntries: [
-    { mark: 'G', name: 'GitHub', detail: 'you@example.com', category: 'Development' },
-    { mark: 'M', name: 'Mail', detail: 'hello@example.com', category: 'Email' },
-    { mark: 'D', name: 'Drive', detail: 'you@example.com', category: 'Work' },
+    { mark: 'G', name: 'GitHub', detail: 'you@example.com' },
+    { mark: 'M', name: 'Mail', detail: 'hello@example.com' },
+    
   ],
   previewFooter: 'Passwords are hidden until you reveal them.',
-  mobilePreviewGreeting: 'Your accounts, at a glance',
+  
   mobilePreviewTitle: 'Quick access',
   mobilePreviewCount: 'Recently used',
   mobilePreviewFooter: 'Your passwords are encrypted and hidden.',
@@ -56,13 +55,13 @@ export const benefitsContent = {
   title: 'Your logins,',
   titleEmphasis: 'easy to find and manage.',
   description:
-    'Instead of checking notes, messages, or browser tabs, open your vault and find the sign-in details you saved.',
+    'Instead of checking notes, messages, open your vault and find the sign-in details you saved.',
   items: [
     {
       icon: KeyRound,
       title: 'Find everything in one place',
       description:
-        'Save the website, username, and password together. Next time, you know exactly where to look.',
+        'Save the secrets, credentials and passwords together. Next time, you know exactly where to look.',
     },
     {
       icon: Eye,
@@ -83,17 +82,17 @@ export const featuresContent = {
   eyebrow: 'What you can do',
   title: 'Your everyday sign-ins, made simpler.',
   description:
-    'Keynest gives you a straightforward way to save, find, and update the logins you use.',
+    'Keynest gives you a straightforward way to save, find, and update the credentials you use.',
   items: [
     {
       icon: Plus,
       title: 'Save your account details',
       description:
-        'Add a website, email or username, and password as one easy-to-find entry.',
+        'Add a name, email or username, and password as one easy-to-find entry.',
     },
     {
       icon: Eye,
-      title: 'Reveal a password when needed',
+      title: 'Reveal a password',
       description:
         'Choose an entry to reveal its password. The rest of your saved passwords remain hidden.',
     },
@@ -114,7 +113,7 @@ export const featuresContent = {
 
 export const callToActionContent = {
   eyebrow: 'Ready to get organized?',
-  title: 'Save your first login in Keynest.',
+  title: 'Save your first secret in Keynest personal vault.',
   description:
     'Create an account, then add the sign-in details you want to keep close.',
   action: 'Create your account',

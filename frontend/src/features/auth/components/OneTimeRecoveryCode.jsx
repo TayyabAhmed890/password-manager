@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Copy, KeyRound } from 'lucide-react'
+import { Check, Copy } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { registerContent } from '../data/authContent'
 
@@ -28,19 +28,17 @@ const OneTimeRecoveryCode = ({
 
   return (
     <section aria-labelledby="recovery-code-title">
-      <div className="flex size-12 items-center justify-center rounded-2xl bg-neutral-950 text-white">
-        <KeyRound size={21} aria-hidden="true" />
-      </div>
+      
       <h2
         id="recovery-code-title"
-        className="mt-6 text-3xl font-semibold tracking-[-0.04em] text-neutral-950"
+        className="mt-6 text-3xl font-bold tracking-[-0.04em] text-neutral-950 font-space"
       >
         {title}
       </h2>
       {successMessage && (
         <p
           role="status"
-          className="mt-3 rounded-xl border border-green-300 bg-green-50 px-4 py-3 text-sm font-medium leading-5 text-green-900"
+          className="font-space mt-3 rounded-xl border border-green-300 bg-green-50 px-4 py-3 text-sm font-medium leading-5 text-green-900"
         >
           {successMessage}
         </p>
@@ -56,7 +54,7 @@ const OneTimeRecoveryCode = ({
       <button
         type="button"
         onClick={copyCode}
-        className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-neutral-300 bg-white px-5 text-sm font-semibold text-neutral-800 transition hover:border-neutral-500 hover:bg-neutral-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950"
+        className="font-space font-bold mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-neutral-300 bg-white px-5 text-sm text-neutral-800 transition hover:border-neutral-500 hover:bg-neutral-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950"
       >
         {isCopied ? (
           <Check size={17} aria-hidden="true" />

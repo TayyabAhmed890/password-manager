@@ -130,9 +130,9 @@ const AccountSettingsDialog = ({ mode, onClose }) => {
           />
         ) : (
           <>
-            <header className="flex items-start justify-between gap-4">
+            <header className="flex items-start justify-between gap-4 ">
               <div>
-                <h2 id="account-dialog-title" className="text-xl font-semibold tracking-tight text-neutral-950">
+                <h2 id="account-dialog-title" className="text-xl font-bold tracking-tight text-neutral-950 font-rope ">
                   {isChangingPassword ? 'Change password' : 'Delete account'}
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-neutral-600">
@@ -152,7 +152,7 @@ const AccountSettingsDialog = ({ mode, onClose }) => {
             </header>
 
             <form
-              className="mt-6 space-y-4"
+              className="mt-6 space-y-4 "
               onSubmit={isChangingPassword ? handlePasswordChange : handleDeleteAccount}
               noValidate
             >
@@ -160,12 +160,14 @@ const AccountSettingsDialog = ({ mode, onClose }) => {
                 id="account-current-password"
                 label="Current password"
                 value={currentPassword}
+                placeholder="Enter your current password"
                 onChange={(event) => {
                   setCurrentPassword(event.target.value)
                   setFieldErrors((errors) => ({ ...errors, currentPassword: '' }))
                 }}
                 autoComplete="current-password"
                 error={fieldErrors.currentPassword}
+                
               />
 
               {isChangingPassword ? (
@@ -190,6 +192,7 @@ const AccountSettingsDialog = ({ mode, onClose }) => {
                   <PasswordField
                     id="account-confirm-password"
                     label="Confirm new password"
+                    placeholder="Re-enter your new password"
                     value={confirmation}
                     onChange={(event) => {
                       setConfirmation(event.target.value)
@@ -228,7 +231,7 @@ const AccountSettingsDialog = ({ mode, onClose }) => {
                 </p>
               )}
 
-              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end font-rope font-bold">
                 <button
                   type="button"
                   onClick={onClose}

@@ -188,21 +188,17 @@ const PasswordPage = () => {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <header className="flex flex-col gap-5 border-b border-neutral-200 pb-6 sm:flex-row sm:items-end sm:justify-between sm:pb-7">
+      <header className="flex items-center justify-between gap-3 border-b border-neutral-200 pb-6 sm:items-end sm:pb-7">
         <div className="max-w-xl">
-          <p className="text-sm font-medium text-neutral-500">Your vault</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em] text-neutral-950 sm:text-4xl">
-            All passwords
+          <h1 className="font-space text-3xl font-semibold tracking-[-0.04em] text-neutral-950 sm:mt-1 sm:text-4xl">
+            Your Vault
           </h1>
-          <p className="mt-3 text-sm leading-6 text-neutral-600">
-            Find a saved sign-in here whenever you need it.
-          </p>
         </div>
         {vaultCount !== null && vaultCount >= maxEntries ? (
           <button
             type="button"
             disabled
-            className="inline-flex min-h-11 cursor-not-allowed items-center justify-center gap-2 self-start rounded-xl border border-neutral-200 bg-neutral-100 px-4 text-sm font-semibold text-neutral-500 sm:self-auto"
+            className="inline-flex min-h-11 shrink-0 cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-neutral-100 px-3 text-sm font-semibold text-neutral-500 sm:px-4 font-rope"
           >
             <Plus size={17} aria-hidden="true" />
             Vault full
@@ -210,10 +206,11 @@ const PasswordPage = () => {
         ) : (
           <Link
             to="/passwords/create"
-            className="inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-xl border border-neutral-950 bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-700 sm:self-auto"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-neutral-950 bg-neutral-950 px-3 text-sm font-semibold text-white transition hover:bg-neutral-700 sm:px-4 font-space"
           >
             <Plus size={17} aria-hidden="true" />
-            Add a password
+            <span className="sm:hidden">Add</span>
+            <span className="hidden sm:inline">Add a password</span>
           </Link>
         )}
       </header>
@@ -225,13 +222,13 @@ const PasswordPage = () => {
       )}
 
       <section aria-labelledby="saved-logins-heading" className="mt-6">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h2 id="saved-logins-heading" className="text-lg font-semibold text-neutral-950">
-              Saved logins
+        <div className="flex items-center justify-between gap-2 sm:gap-3">
+          <div className="flex min-w-0 flex-nowrap items-center gap-2 sm:gap-x-3">
+            <h2 id="saved-logins-heading" className="shrink-0 text-base font-semibold text-neutral-950 font-space sm:text-lg">
+              Saved passwords
             </h2>
             {!isLoading && (
-              <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600">
+              <span className="shrink-0 whitespace-nowrap rounded-full bg-neutral-100 px-2 py-1 text-[11px] font-bold text-neutral-600 font-jakarta sm:px-2.5 sm:text-xs">
                 {searchTerm
                   ? `${entries.length} of ${vaultCount ?? entries.length} matches`
                   : `${vaultCount ?? entries.length}/${maxEntries} saved`}
@@ -245,11 +242,12 @@ const PasswordPage = () => {
                 setIsRefreshing(true)
                 setRefreshVersion((version) => version + 1)
               }}
+              aria-label={isRefreshing ? 'Refreshing saved passwords' : 'Refresh saved passwords'}
               disabled={isRefreshing || isLoading}
-              className="inline-flex min-h-9 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-neutral-200 bg-white px-3 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-9 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-neutral-200 bg-white px-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60 sm:px-3"
             >
               <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} aria-hidden="true" />
-              {isRefreshing ? 'Refreshing…' : 'Refresh list'}
+              <span className="hidden sm:inline">{isRefreshing ? 'Refreshing…' : 'Refresh list'}</span>
             </button>
           )}
         </div>
@@ -361,13 +359,13 @@ const PasswordPage = () => {
             </button>
           </div>
         ) : entries.length === 0 ? (
-          <div className="mt-5 flex min-h-72 flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white px-5 py-10 text-center">
+          <div className="font-space mt-5 flex min-h-72 flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white px-5 py-10 text-center">
             <span className="flex size-12 items-center justify-center rounded-2xl bg-neutral-100 text-neutral-600">
               <LockKeyhole size={21} aria-hidden="true" />
             </span>
             <h3 className="mt-4 text-base font-semibold text-neutral-950">Nothing saved yet</h3>
             <p className="mt-2 max-w-sm text-sm leading-6 text-neutral-500">
-              Add a website and its sign-in details. They’ll be here next time you need them.
+              Add your first credential. They’ll be here next time you need them.
             </p>
             <Link
               to="/passwords/create"
@@ -398,14 +396,14 @@ const PasswordPage = () => {
                     </span>
                   </span>
                   <div className="col-start-2 row-start-1 min-w-0">
-                    <h3 className="wrap-break-word text-sm font-semibold text-neutral-950 sm:text-base">
+                    <h3 className="font-space wrap-break-word text-sm font-semibold text-neutral-950 sm:text-base">
                       {entry.website}
                     </h3>
-                    <p className="mt-1 break-all text-sm font-medium text-neutral-600">{entry.email}</p>
+                    <p className="mt-1 break-all text-sm font-medium text-neutral-600 font-rope">{entry.email}</p>
                     <p
                       key={visiblePasswords[entry.id] ? 'revealed' : 'hidden'}
                       aria-live="polite"
-                      className="vault-password-reveal mt-3 min-h-10 break-all rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2 font-mono text-sm leading-6 text-neutral-700"
+                      className="vault-password-reveal mt-3 min-h-10 break-all rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2 font-jakarta font-medium text-sm leading-6 text-neutral-700 "
                     >
                       {visiblePasswords[entry.id]
                         ? revealedPasswords[entry.id]
@@ -420,7 +418,7 @@ const PasswordPage = () => {
                       className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50"
                     >
                       <Edit3 size={15} aria-hidden="true" />
-                      <span className="hidden sm:inline">Update</span>
+                      <span className="hidden sm:inline font-rope">Update</span>
                     </button>
                     <button
                       type="button"
@@ -433,7 +431,7 @@ const PasswordPage = () => {
                             ? `Hide password for ${entry.website}`
                             : `Reveal password for ${entry.website}`
                       }
-                      className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-wait disabled:opacity-60"
+                      className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-wait disabled:opacity-60 font-rope"
                     >
                       {revealingId === entry.id
                         ? <LoaderCircle size={15} className="animate-spin" aria-hidden="true" />
@@ -472,7 +470,7 @@ const PasswordPage = () => {
                         onClick={() => requestDeleteConfirmation(entry.id)}
                         aria-label={`Remove ${entry.website} from your vault`}
                         title="Remove from vault"
-                        className="flex size-10 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                        className="flex size-10 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 "
                       >
                         <Trash2 size={15} aria-hidden="true" />
                       </button>
@@ -492,7 +490,7 @@ const PasswordPage = () => {
         />
       )}
       {mobileDeleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/50 p-4 sm:hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/50 p-4 sm:hidden font-rope font-bold">
           <section
             role="dialog"
             aria-modal="true"
@@ -502,8 +500,8 @@ const PasswordPage = () => {
             <h2 id="delete-vault-entry-title" className="text-lg font-semibold text-neutral-950">
               Delete this saved sign-in?
             </h2>
-            <p className="mt-2 text-sm leading-6 text-neutral-600">
-              This will permanently remove <span className="font-medium text-neutral-900">
+            <p className="mt-2 text-sm leading-6 text-neutral-600 font-sans font-medium">
+              This will permanently remove <span className="font-bold text-black font-jakarta">
                 {entries.find((entry) => entry.id === mobileDeleteId)?.website}
               </span> from your vault.
             </p>

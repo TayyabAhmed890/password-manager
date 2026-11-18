@@ -75,9 +75,9 @@ const LoginPage = () => {
 
   return (
     <AuthLayout>
-      <div>
+      <div className="font-space">
         <p className="text-sm font-medium text-neutral-500">{loginContent.eyebrow}</p>
-        <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-neutral-950 sm:text-4xl">
+        <h2 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-neutral-950 sm:text-4xl ">
           {loginContent.title}
         </h2>
         <p className="mt-3 text-sm leading-6 text-neutral-600">
@@ -152,7 +152,7 @@ const LoginPage = () => {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-neutral-950 bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:border-neutral-700 hover:bg-neutral-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-neutral-950 bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:border-neutral-700 hover:bg-neutral-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 disabled:cursor-not-allowed disabled:opacity-60 font-space"
         >
           {isSubmitting && <LoaderCircle size={17} className="animate-spin" aria-hidden="true" />}
           {isSubmitting ? loginContent.submitting : loginContent.submit}
@@ -160,7 +160,7 @@ const LoginPage = () => {
         {isSubmitting && <p className="sr-only" role="status">Logging in</p>}
       </form>
 
-      <p className="mt-7 text-center text-sm text-neutral-600">
+      <p className="mt-7 text-center text-sm text-neutral-600 ">
         {loginContent.switchPrompt}{' '}
         <Link to="/register" className="font-semibold text-neutral-950 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-950">
           {loginContent.switchAction}

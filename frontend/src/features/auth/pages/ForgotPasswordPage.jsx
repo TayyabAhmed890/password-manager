@@ -112,12 +112,12 @@ const ForgotPasswordPage = () => {
 
   return (
     <AuthLayout>
-      <div>
+      <div className="font-space">
        
         <p className="text-sm font-medium text-neutral-500">
           {forgotPasswordContent.eyebrow}
         </p>
-        <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-neutral-950 sm:text-4xl">
+        <h2 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-neutral-950 sm:text-4xl">
           {forgotPasswordContent.title}
         </h2>
         <p className="mt-3 text-sm leading-6 text-neutral-600">
@@ -260,7 +260,7 @@ const ForgotPasswordPage = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-neutral-950 bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:border-neutral-700 hover:bg-neutral-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-neutral-950 bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:border-neutral-700 hover:bg-neutral-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 disabled:cursor-not-allowed disabled:opacity-60 font-space"
           >
             {isSubmitting && <LoaderCircle size={17} className="animate-spin" aria-hidden="true" />}
             {isSubmitting ? forgotPasswordContent.submitting : forgotPasswordContent.submit}

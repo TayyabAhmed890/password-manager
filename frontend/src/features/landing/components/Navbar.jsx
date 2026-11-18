@@ -10,7 +10,7 @@ const Navbar = () => {
 
   return (
     <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3.5 sm:px-8">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3.5 sm:px-8 font-space">
         <Link
           to="/"
           onClick={closeMenu}
