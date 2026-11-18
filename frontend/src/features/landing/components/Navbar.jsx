@@ -14,13 +14,18 @@ const Navbar = () => {
         <Link
           to="/"
           onClick={closeMenu}
-          className="flex items-center gap-2.5"
+          className="flex items-center gap-1"
           aria-label={brandContent.homeLabel}
         >
-          <span className="flex size-9 items-center justify-center rounded-xl bg-neutral-950 text-white">
-            <KeyRound className="size-4.5" strokeWidth={1.8} aria-hidden="true" />
+          
+            <img src="/keynest.png" alt="" className="size-11 object-contain" />
+          
+          <span
+            className="text-xl font-bold tracking-tight"
+            style={{ fontFamily: '"Neue Machina", sans-serif', fontWeight: 700 }}
+          >
+            {brandContent.name}
           </span>
-          <span className="text-lg font-semibold tracking-tight">{brandContent.name}</span>
         </Link>
 
         <div className="ml-auto hidden items-center gap-7 md:flex">

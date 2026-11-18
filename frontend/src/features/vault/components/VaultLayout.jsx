@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import {
   ChevronDown,
   CirclePlus,
-  KeyRound,
   List,
   LogOut,
   Menu,
@@ -142,9 +141,7 @@ const VaultLayout = () => {
           </button>
         </div>
         <div className="mt-8 border-t border-neutral-200 pt-6">
-          <p className={`mb-3 px-3 text-xs font-semibold text-neutral-400 ${isSidebarCollapsed ? 'lg:sr-only' : ''}`}>
-            Your vault
-          </p>
+          
           {navContent}
         </div>
         <div className={`mt-auto space-y-1 border-t border-neutral-200 pt-4 ${isSidebarCollapsed ? 'lg:px-0' : ''}`}>
@@ -193,15 +190,11 @@ const VaultLayout = () => {
               >
                 {isMobileNavOpen ? <X size={19} /> : <Menu size={19} />}
               </button>
-              <NavLink to="/passwords" aria-label="Keynest vault" className="inline-flex items-center gap-2.5">
-                <span className="flex size-9 items-center justify-center rounded-xl bg-neutral-950 text-white">
-                  <KeyRound size={18} aria-hidden="true" />
-                </span>
-                <span className="text-base font-semibold tracking-tight">Keynest</span>
+              <NavLink to="/passwords" aria-label="Keynest vault" className="inline-flex items-center gap-1">
+                <img src={isDarkMode ? '/keynest white.png' : '/keynest.png'} alt="" className="size-11 object-contain" />
+                <span className="text-xl font-bold font-['Neue_Machina']">Keynest</span>
               </NavLink>
-              <p className="hidden border-l border-neutral-200 pl-3 text-sm text-neutral-500 sm:block">
-                Your personal password vault
-              </p>
+              
             </div>
 
             <div className="flex items-center gap-2">

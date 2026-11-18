@@ -9,11 +9,11 @@ const AuthLayout = ({ children }) => (
       <div className="absolute -right-20 -top-16 size-80 rounded-full border border-white/10" aria-hidden="true" />
       <div className="absolute -bottom-48 -left-32 size-120 rounded-full border border-white/10" aria-hidden="true" />
 
-      <Link to="/" className="relative inline-flex w-fit items-center gap-2.5" aria-label={`${authLayoutContent.brand} home`}>
-        <span className="flex size-10 items-center justify-center rounded-xl border border-white/20 bg-white/10">
-          <KeyRound size={19} strokeWidth={1.8} aria-hidden="true" />
-        </span>
-        <span className="text-lg font-semibold tracking-tight">{authLayoutContent.brand}</span>
+      <Link to="/" className="relative inline-flex w-fit items-center gap-1" aria-label={`${authLayoutContent.brand} home`}>
+        
+          <img src="/keynest white.png" alt="" className="size-11 object-contain" />
+       
+        <span className="font-['Neue_Machina'] text-xl font-bold tracking-tight">{authLayoutContent.brand}</span>
       </Link>
 
       <div className="relative my-16 max-w-xl">
