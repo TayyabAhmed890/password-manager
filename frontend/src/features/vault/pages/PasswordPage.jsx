@@ -505,7 +505,7 @@ const PasswordPage = () => {
               Delete this saved sign-in?
             </h2>
             <p className="mt-2 text-sm leading-6 text-neutral-600 font-sans font-medium">
-              This will permanently remove <span className="font-bold text-black font-jakarta">
+              This will permanently remove <span className="font-bold font-jakarta">
                 {mobileDeleteEntry.website}
               </span> from your vault.
             </p>
